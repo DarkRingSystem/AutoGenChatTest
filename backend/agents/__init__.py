@@ -40,8 +40,8 @@ def register_all_agents():
     factory.register_agent(AgentType.TESTCASE_TEAM, TestCaseTeamAgent)
 
     # 延迟导入图片分析团队（避免循环依赖）
-    # from .image_analyzer_team import ImageAnalyzerTeam
-    # factory.register_agent(AgentType.IMAGE_ANALYSIS_TEAM, ImageAnalyzerTeam)
+    from .image_analyzer_team import ImageAnalyzerTeam
+    factory.register_agent(AgentType.IMAGE_ANALYSIS_TEAM, ImageAnalyzerTeam)
 
     _agents_registered = True
     print("✅ 所有智能体类型已注册到工厂")

@@ -865,10 +865,17 @@ async def image_analysis_stream(
         # 创建流式服务
         stream_service = ImageAnalysisStreamService()
 
-        # 创建图片分析团队并初始化
-        from agents.image_analyzer_team import ImageAnalyzerTeam
-        analyzer_team = ImageAnalyzerTeam(settings)
-        await analyzer_team.initialize()
+        # 使用工厂创建图片分析团队
+        from agents.factory import get_agent_factory, AgentType
+        from agents import register_all_agents
+
+        register_all_agents()
+        factory = get_agent_factory(settings)
+
+        analyzer_team = await factory.create_agent(
+            agent_type=AgentType.IMAGE_ANALYSIS_TEAM,
+            name="ImageAnalyzerTeam",
+        )
 
         # 执行流式分析
         event_stream = analyzer_team.analyze_image_stream(
@@ -944,10 +951,17 @@ async def image_analysis(
         else:
             raise HTTPException(status_code=400, detail="必须提供图片文件或图片 URL")
 
-        # 创建图片分析团队并初始化
-        from agents.image_analyzer_team import ImageAnalyzerTeam
-        analyzer_team = ImageAnalyzerTeam(settings)
-        await analyzer_team.initialize()
+        # 使用工厂创建图片分析团队
+        from agents.factory import get_agent_factory, AgentType
+        from agents import register_all_agents
+
+        register_all_agents()
+        factory = get_agent_factory(settings)
+
+        analyzer_team = await factory.create_agent(
+            agent_type=AgentType.IMAGE_ANALYSIS_TEAM,
+            name="ImageAnalyzerTeam",
+        )
 
         # 执行分析
         results = await analyzer_team.analyze_image(

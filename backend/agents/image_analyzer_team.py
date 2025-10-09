@@ -12,12 +12,13 @@ from autogen_agentchat.base import TaskResult
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core import Image
 
+from agents.base_agent import BaseTeamAgent
 from config import Settings
 from core.llm_clients import get_uitars_model_client, get_default_model_client
 from prompts.prompt_loader import load_prompt, PromptNames
 
 
-class ImageAnalyzerTeam:
+class ImageAnalyzerTeam(BaseTeamAgent):
     """
     UI 图片分析智能体团队
 
@@ -34,27 +35,29 @@ class ImageAnalyzerTeam:
     - 脚本生成专家
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(
+        self,
+        name: str = "ImageAnalyzerTeam",
+        settings: Optional[Settings] = None,
+    ):
         """
         初始化图片分析团队
 
         参数:
+            name: 团队名称
             settings: 配置实例，如果为 None 则使用全局配置
         """
-        if settings is None:
-            from config import settings as global_settings
-            settings = global_settings
+        super().__init__(name=name, settings=settings)
 
-        self.settings = settings
-        self.vision_model_client: Optional[OpenAIChatCompletionClient] = None
+        self.uitars_model_client: Optional[OpenAIChatCompletionClient] = None
+        self.default_model_client: Optional[OpenAIChatCompletionClient] = None
         self.ui_expert: Optional[AssistantAgent] = None
         self.interaction_analyst: Optional[AssistantAgent] = None
         self.test_scenario_expert: Optional[AssistantAgent] = None
-        self.team: Optional[GraphFlow] = None
 
     async def initialize(self) -> None:
         """初始化图片分析团队"""
-        print("🚀 正在初始化 UI 图片分析团队...")
+        print(f"🚀 正在初始化 UI 图片分析团队: {self.name}...")
 
         # 创建 UI-TARS 模型客户端（用于 UI 和交互分析）
         self.uitars_model_client = get_uitars_model_client(self.settings)
@@ -62,15 +65,12 @@ class ImageAnalyzerTeam:
         # 创建默认模型客户端（用于测试场景专家）
         self.default_model_client = get_default_model_client(self.settings)
 
-        # 创建团队成员
-        self._create_team_members()
+        # 调用父类的初始化方法
+        await super().initialize()
 
-        # 创建 GraphFlow 工作流
-        self._create_graph_flow()
+        print(f"✅ UI 图片分析团队 {self.name} 初始化成功！")
 
-        print("✅ UI 图片分析团队初始化成功！")
-
-    def _create_team_members(self) -> None:
+    def create_team_members(self) -> List[AssistantAgent]:
         """创建团队成员智能体"""
 
         # 1. UI 专家 - 负责视觉和布局分析（使用 UI-TARS 模型）
@@ -102,7 +102,9 @@ class ImageAnalyzerTeam:
         print(f"     - {self.interaction_analyst.name} (UI-TARS 模型)")
         print(f"     - {self.test_scenario_expert.name} (DeepSeek 对话模型)")
 
-    def _create_graph_flow(self) -> None:
+        return [self.ui_expert, self.interaction_analyst, self.test_scenario_expert]
+
+    def create_team_workflow(self) -> GraphFlow:
         """
         创建 GraphFlow 工作流
 
@@ -141,16 +143,43 @@ class ImageAnalyzerTeam:
         termination_condition = MaxMessageTermination(20)
 
         # 创建 GraphFlow 团队
-        self.team = GraphFlow(
+        team = GraphFlow(
             participants=builder.get_participants(),
             graph=graph,
             termination_condition=termination_condition,
         )
 
         print(f"   ✓ GraphFlow 工作流已建立")
-        print(f"     - UI_Expert 和 Interaction_Analyst 并行分析")
-        print(f"     - 结果汇总到 Test_Scenario_Expert")
-        print(f"     - 前端按顺序展示")
+
+        return team
+
+    def get_agent_type(self) -> str:
+        """
+        获取智能体类型
+
+        返回:
+            智能体类型标识符
+        """
+        return "image_analysis_team"
+
+    async def cleanup(self) -> None:
+        """清理资源"""
+        if self.uitars_model_client:
+            try:
+                await self.uitars_model_client.close()
+                print(f"🧹 {self.name} UI-TARS 模型客户端已清理")
+            except Exception as e:
+                print(f"⚠️ 清理 {self.name} UI-TARS 模型客户端时出错: {e}")
+
+        if self.default_model_client:
+            try:
+                await self.default_model_client.close()
+                print(f"🧹 {self.name} 默认模型客户端已清理")
+            except Exception as e:
+                print(f"⚠️ 清理 {self.name} 默认模型客户端时出错: {e}")
+
+        # 调用父类的清理方法
+        await super().cleanup()
 
     async def analyze_image(
         self,
@@ -422,22 +451,3 @@ class ImageAnalyzerTeam:
         ]
 
         return "\n".join(summary_parts)
-
-    def get_team(self) -> Optional[GraphFlow]:
-        """
-        获取团队实例
-
-        返回:
-            GraphFlow 实例或 None
-        """
-        return self.team
-
-    def is_initialized(self) -> bool:
-        """
-        检查团队是否已初始化
-
-        返回:
-            True 如果已初始化，否则 False
-        """
-        return self.team is not None
-
