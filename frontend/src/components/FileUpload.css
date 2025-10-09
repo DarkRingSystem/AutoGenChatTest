@@ -6,8 +6,9 @@
 .upload-button-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
 }
 
 /* 紧凑型文件列表 */
