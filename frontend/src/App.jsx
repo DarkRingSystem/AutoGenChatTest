@@ -100,16 +100,29 @@ function App() {
   const [autoScroll, setAutoScroll] = useState(true); // 是否自动滚动
   const [editingMessageId, setEditingMessageId] = useState(null); // 正在编辑的消息 ID
   const [editingContent, setEditingContent] = useState(''); // 编辑中的内容
-  const [conversationId, setConversationId] = useState(null); // 当前会话 ID
+
+  // 为每种模式维护独立的会话 ID
+  const [normalConversationId, setNormalConversationId] = useState(null); // 普通对话模式的会话 ID
+  const [testcaseConversationId, setTestcaseConversationId] = useState(null); // 测试用例模式的会话 ID
+  const [imageConversationId, setImageConversationId] = useState(null); // 图片分析模式的会话 ID
+
   const abortControllerRef = useRef(null); // 用于中止流式传输
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const lastScrollTopRef = useRef(0); // 记录上次滚动位置
   const isUserScrollingRef = useRef(false); // 标记用户是否正在滚动
 
-  // 根据当前模式获取对应的消息列表
+  // 根据当前模式获取对应的消息列表和会话 ID
   const messages = selectedMode === 'testcase' ? testcaseMessages : normalMessages;
   const setMessages = selectedMode === 'testcase' ? setTestcaseMessages : setNormalMessages;
+
+  // 根据当前模式获取对应的会话 ID 和设置函数
+  const conversationId = selectedMode === 'testcase' ? testcaseConversationId :
+                         selectedMode === 'image' ? imageConversationId :
+                         normalConversationId;
+  const setConversationId = selectedMode === 'testcase' ? setTestcaseConversationId :
+                            selectedMode === 'image' ? setImageConversationId :
+                            setNormalConversationId;
 
   // 消息变化时滚动到底部（仅当自动滚动开启时）
   useEffect(() => {
@@ -523,7 +536,7 @@ function App() {
 
   const handleModeSelect = (mode) => {
     setSelectedMode(mode);
-    setConversationId(null); // 切换模式时重置会话 ID
+    // 不重置会话 ID，每个模式保持自己的会话
     let modeText = '';
     if (mode === 'normal') {
       modeText = '普通对话';
@@ -537,7 +550,7 @@ function App() {
 
   const handleBackToModeSelector = () => {
     setSelectedMode(null);
-    setConversationId(null); // 返回模式选择时重置会话 ID
+    // 不重置会话 ID，保留各模式的会话状态
     message.success('已返回模式选择');
   };
 
