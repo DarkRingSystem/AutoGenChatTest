@@ -26,7 +26,7 @@ warnings.filterwarnings(
 )
 
 from config import settings
-from api.routes import router
+from api import router
 from core.dependencies import initialize_services, cleanup_services
 
 
