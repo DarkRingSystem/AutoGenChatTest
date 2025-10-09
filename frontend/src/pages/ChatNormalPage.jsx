@@ -10,7 +10,7 @@ export default function ChatNormalPage() {
   }, []);
 
   return (
-    <div className="chat-normal-page" style={{ height: '100%' }}>
+    <div className="chat-normal-page" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ChatNormalContainer
         isDark={isDark}
         registerClearSession={registerClearSession}

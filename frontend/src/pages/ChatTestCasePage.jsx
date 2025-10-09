@@ -10,7 +10,7 @@ export default function ChatTestCasePage() {
   }, []);
 
   return (
-    <div className="chat-testcase-page" style={{ height: '100%' }}>
+    <div className="chat-testcase-page" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ChatTestCaseContainer
         isDark={isDark}
         registerClearSession={registerClearSession}
