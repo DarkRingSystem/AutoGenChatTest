@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional, Dict
 import uuid
 import re
+import base64
 
 from models import (
     ChatRequest, ChatResponse, HealthResponse,
