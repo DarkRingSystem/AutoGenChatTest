@@ -1,0 +1,14 @@
+.neon-icon {
+  cursor: pointer;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.neon-icon:hover {
+  transform: scale(1.1);
+}
+
+.neon-icon svg {
+  overflow: visible;
+}
+

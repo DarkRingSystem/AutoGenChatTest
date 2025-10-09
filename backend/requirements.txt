@@ -1,0 +1,14 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.1
+autogen-agentchat==0.7.5
+autogen-ext[openai]==0.7.5
+tiktoken>=0.5.0
+marker-pdf>=1.0.0  # Markdown 转换功能（使用延迟导入避免启动时下载模型）
+weasyprint>=66.0  # marker-pdf 转换 DOCX 需要
+mammoth>=1.11.0  # marker-pdf 转换 DOCX 需要
+python-multipart>=0.0.6
+pillow>=11.0.0  # autogen-core 需要（安装后需要手动升级：pip install "pillow>=11.0.0" --upgrade）
+

@@ -1,0 +1,265 @@
+.image-analyzer {
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.analyzer-card {
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.image-analyzer.dark .analyzer-card {
+  background: #1f1f1f;
+  border-color: #333;
+}
+
+.image-analyzer.light .analyzer-card {
+  background: #ffffff;
+  border-color: #e8e8e8;
+}
+
+/* 智能体消息容器 */
+.agent-messages-container {
+  /* 移除固定高度，允许自然增长 */
+  /* max-height: 600px; */
+  /* overflow-y: auto; */
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
+
+.image-analyzer.dark .agent-messages-container {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 智能体状态消息 */
+.agent-status-message {
+  margin: 8px 0;
+  text-align: center;
+}
+
+/* 智能体消息折叠面板 */
+.agent-message-collapse {
+  margin: 16px 0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.agent-message-collapse .ant-collapse-item {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.agent-message-collapse .ant-collapse-header {
+  padding: 12px 16px !important;
+  font-weight: 500;
+}
+
+.agent-message-collapse:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-analyzer.dark .agent-message-collapse {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.image-analyzer.light .agent-message-collapse {
+  background: #fafafa;
+  border-color: #e8e8e8;
+}
+
+/* 智能体消息卡片（保留兼容性） */
+.agent-message-card {
+  margin: 16px 0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.agent-message-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.image-analyzer.dark .agent-message-card {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.image-analyzer.light .agent-message-card {
+  background: #fafafa;
+  border-color: #e8e8e8;
+}
+
+/* 智能体角色标签 */
+.agent-role {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 智能体消息内容 */
+.agent-message-content {
+  padding: 8px 0;
+  line-height: 1.8;
+}
+
+.agent-message-content h1,
+.agent-message-content h2,
+.agent-message-content h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.agent-message-content h1 {
+  font-size: 20px;
+  border-bottom: 2px solid #1890ff;
+  padding-bottom: 8px;
+}
+
+.agent-message-content h2 {
+  font-size: 18px;
+  color: #1890ff;
+}
+
+.agent-message-content h3 {
+  font-size: 16px;
+  color: #52c41a;
+}
+
+.agent-message-content ul,
+.agent-message-content ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.agent-message-content li {
+  margin: 4px 0;
+}
+
+.agent-message-content p {
+  margin: 8px 0;
+}
+
+.agent-message-content code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.image-analyzer.dark .agent-message-content code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.agent-message-content pre {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.image-analyzer.dark .agent-message-content pre {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.agent-message-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.agent-message-content blockquote {
+  border-left: 4px solid #1890ff;
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #666;
+}
+
+.image-analyzer.dark .agent-message-content blockquote {
+  color: #aaa;
+}
+
+.agent-message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.agent-message-content table th,
+.agent-message-content table td {
+  border: 1px solid #e8e8e8;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.image-analyzer.dark .agent-message-content table th,
+.image-analyzer.dark .agent-message-content table td {
+  border-color: #444;
+}
+
+.agent-message-content table th {
+  background: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+}
+
+.image-analyzer.dark .agent-message-content table th {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 加载指示器 */
+.loading-indicator {
+  text-align: center;
+  padding: 24px;
+}
+
+/* 滚动条样式 */
+.agent-messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.agent-messages-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.agent-messages-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.agent-messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.image-analyzer.dark .agent-messages-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.image-analyzer.dark .agent-messages-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.image-analyzer.dark .agent-messages-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .image-analyzer {
+    padding: 10px;
+  }
+
+  .analyzer-card {
+    border-radius: 8px;
+  }
+
+  /* 移除高度限制，允许内容自然增长 */
+  /* .agent-messages-container {
+    max-height: 400px;
+  } */
+}
+
