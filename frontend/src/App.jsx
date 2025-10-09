@@ -100,6 +100,7 @@ function App() {
   const [autoScroll, setAutoScroll] = useState(true); // 是否自动滚动
   const [editingMessageId, setEditingMessageId] = useState(null); // 正在编辑的消息 ID
   const [editingContent, setEditingContent] = useState(''); // 编辑中的内容
+  const [conversationId, setConversationId] = useState(null); // 当前会话 ID
   const abortControllerRef = useRef(null); // 用于中止流式传输
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -201,21 +202,21 @@ function App() {
       .map(f => f.file_id);
 
     // 检查是否有待反馈的消息（优先使用手动传递的反馈信息）
-    let isFeedback, conversationId, targetAgent;
+    let isFeedback, currentConversationId, targetAgent;
 
     if (manualFeedback) {
       // 使用手动传递的反馈信息（来自"同意"按钮）
       isFeedback = manualFeedback.isFeedback;
-      conversationId = manualFeedback.conversationId;
+      currentConversationId = manualFeedback.conversationId;
       targetAgent = manualFeedback.targetAgent;
-      console.log('🔵 使用手动反馈信息:', { isFeedback, conversationId, targetAgent });
+      console.log('🔵 使用手动反馈信息:', { isFeedback, currentConversationId, targetAgent });
     } else {
       // 自动检测反馈消息
       const pendingFeedbackMessage = messages.find(msg => msg.feedbackRequest);
       isFeedback = !!pendingFeedbackMessage;
-      conversationId = pendingFeedbackMessage?.conversationId;
+      currentConversationId = pendingFeedbackMessage?.conversationId || conversationId;
       targetAgent = isFeedback ? parseTargetAgent(userMessage) : null;
-      console.log('🔵 自动检测反馈信息:', { isFeedback, conversationId, targetAgent });
+      console.log('🔵 自动检测反馈信息:', { isFeedback, currentConversationId, targetAgent });
     }
 
     // 如果是反馈消息，清除之前消息的 feedbackRequest 标记
@@ -270,7 +271,7 @@ function App() {
           message: userMessage,  // 发送原始用户消息
           file_ids: fileIds.length > 0 ? fileIds : undefined,  // 发送文件 ID 列表
           is_feedback: isFeedback,  // 是否为反馈消息
-          conversation_id: conversationId,  // 会话 ID
+          conversation_id: currentConversationId,  // 会话 ID
           target_agent: targetAgent  // 目标智能体
         }),
         signal: abortControllerRef.current.signal, // 添加中止信号
@@ -280,9 +281,15 @@ function App() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // 从响应头中获取 conversation_id
+      // 从响应头中获取 conversation_id 并保存
       const responseConversationId = response.headers.get('X-Conversation-ID');
       console.log('📝 Conversation ID:', responseConversationId);
+
+      // 保存会话 ID 到状态
+      if (responseConversationId && !conversationId) {
+        setConversationId(responseConversationId);
+        console.log('💾 保存会话 ID:', responseConversationId);
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -506,6 +513,7 @@ function App() {
 
   const handleClear = () => {
     setMessages([]);
+    setConversationId(null); // 重置会话 ID
     antMessage.success('对话已清空');
   };
 
@@ -515,6 +523,7 @@ function App() {
 
   const handleModeSelect = (mode) => {
     setSelectedMode(mode);
+    setConversationId(null); // 切换模式时重置会话 ID
     let modeText = '';
     if (mode === 'normal') {
       modeText = '普通对话';
@@ -528,6 +537,7 @@ function App() {
 
   const handleBackToModeSelector = () => {
     setSelectedMode(null);
+    setConversationId(null); // 返回模式选择时重置会话 ID
     message.success('已返回模式选择');
   };
 

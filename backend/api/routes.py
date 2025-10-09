@@ -206,7 +206,8 @@ async def chat_stream(request: ChatRequest):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # 在 nginx 中禁用缓冲
-            "X-Session-ID": session.session_id,  # 返回会话 ID
+            "X-Session-ID": session.session_id,  # 返回会话 ID（兼容旧版）
+            "X-Conversation-ID": session.session_id,  # 返回会话 ID（前端使用）
         }
     )
 
