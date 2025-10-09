@@ -5,6 +5,7 @@
 from .base_agent import BaseAgent, BaseTeamAgent
 from .factory import AgentFactory, AgentType, AgentRegistry, get_agent_factory
 from .chat_agent import ChatAgent
+from .testcase_team_agent import TestCaseTeamAgent
 
 __all__ = [
     'BaseAgent',
@@ -14,6 +15,7 @@ __all__ = [
     'AgentRegistry',
     'get_agent_factory',
     'ChatAgent',
+    'TestCaseTeamAgent',
     'register_all_agents',
 ]
 
@@ -34,7 +36,10 @@ def register_all_agents():
     # 注册单智能体
     factory.register_agent(AgentType.CHAT, ChatAgent)
 
-    # 延迟导入团队智能体（避免循环依赖）
+    # 注册团队智能体
+    factory.register_agent(AgentType.TESTCASE_TEAM, TestCaseTeamAgent)
+
+    # 延迟导入图片分析团队（避免循环依赖）
     # from .image_analyzer_team import ImageAnalyzerTeam
     # factory.register_agent(AgentType.IMAGE_ANALYSIS_TEAM, ImageAnalyzerTeam)
 
