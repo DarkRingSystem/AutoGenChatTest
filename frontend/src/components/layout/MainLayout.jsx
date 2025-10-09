@@ -68,6 +68,9 @@ export default function MainLayout() {
   // 判断是否在功能页面（非首页）
   const isInModePage = location.pathname !== '/home' && location.pathname !== '/';
 
+  // 判断是否在首页
+  const isHomePage = location.pathname === '/home' || location.pathname === '/';
+
   return (
     <ConfigProvider
       theme={{
@@ -79,49 +82,51 @@ export default function MainLayout() {
     >
       <AntApp>
         <div className={`main-layout ${isDark ? 'dark' : 'light'}`}>
-          {/* 顶部导航栏 - 始终显示 */}
-          <header className="main-header">
-            <div className="header-content">
-              <div className="logo">
-                <span className="logo-icon">🤖</span>
-                <span className="logo-text">AutoGen Chat</span>
-              </div>
+          {/* 顶部导航栏 - 仅在非首页显示 */}
+          {!isHomePage && (
+            <header className="main-header">
+              <div className="header-content">
+                <div className="logo">
+                  <span className="logo-icon">🤖</span>
+                  <span className="logo-text">AutoGen Chat</span>
+                </div>
 
-              <Menu
-                mode="horizontal"
-                selectedKeys={[selectedKey]}
-                items={menuItems}
-                onClick={handleMenuClick}
-                className="main-menu"
-              />
+                <Menu
+                  mode="horizontal"
+                  selectedKeys={[selectedKey]}
+                  items={menuItems}
+                  onClick={handleMenuClick}
+                  className="main-menu"
+                />
 
-              <div className="header-actions">
-                <Space size="middle">
-                  {/* 清空会话按钮 - 仅在功能页面显示 */}
-                  {isInModePage && (
-                    <Tooltip title="清空对话">
+                <div className="header-actions">
+                  <Space size="middle">
+                    {/* 清空会话按钮 - 仅在功能页面显示 */}
+                    {isInModePage && (
+                      <Tooltip title="清空对话">
+                        <Button
+                          type="text"
+                          icon={<ClearOutlined />}
+                          onClick={handleClearSession}
+                          className="action-button"
+                        />
+                      </Tooltip>
+                    )}
+
+                    {/* 主题切换按钮 */}
+                    <Tooltip title={isDark ? '切换到亮色主题' : '切换到深色主题'}>
                       <Button
                         type="text"
-                        icon={<ClearOutlined />}
-                        onClick={handleClearSession}
+                        icon={isDark ? <SunOutlined /> : <MoonOutlined />}
+                        onClick={toggleTheme}
                         className="action-button"
                       />
                     </Tooltip>
-                  )}
-
-                  {/* 主题切换按钮 */}
-                  <Tooltip title={isDark ? '切换到亮色主题' : '切换到深色主题'}>
-                    <Button
-                      type="text"
-                      icon={isDark ? <SunOutlined /> : <MoonOutlined />}
-                      onClick={toggleTheme}
-                      className="action-button"
-                    />
-                  </Tooltip>
-                </Space>
+                  </Space>
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
+          )}
 
           {/* 主内容区域 */}
           <main className="main-content">

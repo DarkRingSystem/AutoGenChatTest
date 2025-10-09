@@ -124,17 +124,6 @@ function LegacyApp({
     }
   }, [externalIsDark]);
 
-  // 注册清空会话回调（供导航栏使用）
-  useEffect(() => {
-    if (registerClearSession) {
-      registerClearSession(() => {
-        setMessages([]);
-        setConversationId(null);
-        message.success('对话已清空');
-      });
-    }
-  }, [registerClearSession, setMessages, setConversationId]);
-
   // 根据当前模式获取对应的消息列表和会话 ID
   const messages = selectedMode === 'testcase' ? testcaseMessages : normalMessages;
   const setMessages = selectedMode === 'testcase' ? setTestcaseMessages : setNormalMessages;
@@ -146,6 +135,17 @@ function LegacyApp({
   const setConversationId = selectedMode === 'testcase' ? setTestcaseConversationId :
                             selectedMode === 'image' ? setImageConversationId :
                             setNormalConversationId;
+
+  // 注册清空会话回调（供导航栏使用）
+  useEffect(() => {
+    if (registerClearSession) {
+      registerClearSession(() => {
+        setMessages([]);
+        setConversationId(null);
+        message.success('对话已清空');
+      });
+    }
+  }, [registerClearSession, setMessages, setConversationId]);
 
   // 消息变化时滚动到底部（仅当自动滚动开启时）
   useEffect(() => {
