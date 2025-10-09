@@ -7,12 +7,14 @@ import LegacyApp from '../LegacyApp';
 
 export default function ChatNormalContainer({ isDark, registerClearSession }) {
   return (
-    <LegacyApp
-      initialMode="normal"
-      isDark={isDark}
-      registerClearSession={registerClearSession}
-      hideHeader={true}
-    />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <LegacyApp
+        initialMode="normal"
+        isDark={isDark}
+        registerClearSession={registerClearSession}
+        hideHeader={true}
+      />
+    </div>
   );
 }
 

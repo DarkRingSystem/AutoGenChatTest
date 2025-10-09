@@ -7,12 +7,14 @@ import LegacyApp from '../LegacyApp';
 
 export default function ChatTestCaseContainer({ isDark, registerClearSession }) {
   return (
-    <LegacyApp
-      initialMode="testcase"
-      isDark={isDark}
-      registerClearSession={registerClearSession}
-      hideHeader={true}
-    />
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <LegacyApp
+        initialMode="testcase"
+        isDark={isDark}
+        registerClearSession={registerClearSession}
+        hideHeader={true}
+      />
+    </div>
   );
 }
 

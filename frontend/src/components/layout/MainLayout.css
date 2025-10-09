@@ -96,6 +96,7 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 0; /* 重要：允许 flex 子元素正确收缩 */
+  max-height: 100%; /* 防止超出父容器 */
 }
 
 /* 响应式设计 */
