@@ -71,6 +71,25 @@
   gap: 12px;
 }
 
+.action-button {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover {
+  color: #00b96b;
+  transform: scale(1.1);
+}
+
+.main-layout.light .action-button {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.main-layout.light .action-button:hover {
+  color: #00b96b;
+}
+
 .main-content {
   flex: 1;
   display: flex;

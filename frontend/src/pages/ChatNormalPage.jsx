@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import ChatNormalContainer from '../components/chat/ChatNormalContainer';
 
 export default function ChatNormalPage() {
-  const { isDark } = useOutletContext();
+  const { isDark, registerClearSession } = useOutletContext();
 
   useEffect(() => {
     document.title = 'AutoGen Chat - 普通对话';
@@ -11,7 +11,10 @@ export default function ChatNormalPage() {
 
   return (
     <div className="chat-normal-page" style={{ height: '100%' }}>
-      <ChatNormalContainer isDark={isDark} />
+      <ChatNormalContainer
+        isDark={isDark}
+        registerClearSession={registerClearSession}
+      />
     </div>
   );
 }

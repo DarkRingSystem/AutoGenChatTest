@@ -5,7 +5,14 @@
 import React from 'react';
 import LegacyApp from '../LegacyApp';
 
-export default function ChatTestCaseContainer({ isDark }) {
-  return <LegacyApp initialMode="testcase" isDark={isDark} />;
+export default function ChatTestCaseContainer({ isDark, registerClearSession }) {
+  return (
+    <LegacyApp
+      initialMode="testcase"
+      isDark={isDark}
+      registerClearSession={registerClearSession}
+      hideHeader={true}
+    />
+  );
 }
 

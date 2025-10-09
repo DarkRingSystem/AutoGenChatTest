@@ -84,7 +84,12 @@ const TESTCASE_SUGGESTIONS = [
   },
 ];
 
-function LegacyApp({ initialMode = null, isDark: externalIsDark }) {
+function LegacyApp({
+  initialMode = null,
+  isDark: externalIsDark,
+  registerClearSession,
+  hideHeader = false
+}) {
   // 为每种模式维护独立的消息列表
   const [normalMessages, setNormalMessages] = useState([]); // 普通对话模式的消息
   const [testcaseMessages, setTestcaseMessages] = useState([]); // 智能体模式的消息
@@ -118,6 +123,17 @@ function LegacyApp({ initialMode = null, isDark: externalIsDark }) {
       setIsDark(externalIsDark);
     }
   }, [externalIsDark]);
+
+  // 注册清空会话回调（供导航栏使用）
+  useEffect(() => {
+    if (registerClearSession) {
+      registerClearSession(() => {
+        setMessages([]);
+        setConversationId(null);
+        message.success('对话已清空');
+      });
+    }
+  }, [registerClearSession, setMessages, setConversationId]);
 
   // 根据当前模式获取对应的消息列表和会话 ID
   const messages = selectedMode === 'testcase' ? testcaseMessages : normalMessages;
@@ -911,62 +927,64 @@ function LegacyApp({ initialMode = null, isDark: externalIsDark }) {
               <div className="gradient-orb orb-3"></div>
             </div>
 
-            {/* 顶部导航栏 */}
-            <motion.header
-              className="app-header"
-              initial={{ y: -100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            >
-              <div className="header-content">
-                <div className="logo-section">
-                  <motion.div
-                    className="logo-icon-wrapper"
-                    whileHover={{ scale: 1.1, rotate: 360 }}
-                    transition={{ duration: 0.6 }}
-                  >
-                    <FireOutlined className="logo-icon" />
-                  </motion.div>
-                  <div className="logo-text">
-                    <h1 className="logo-title">
-                      {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' : 'DeepSeek AI'}
-                    </h1>
-                    <p className="logo-subtitle">
-                      {selectedMode === 'testcase' ? '专业测试用例生成服务' : '智能对话助手'}
-                    </p>
+            {/* 顶部导航栏 - 仅在未隐藏时显示 */}
+            {!hideHeader && (
+              <motion.header
+                className="app-header"
+                initial={{ y: -100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <div className="header-content">
+                  <div className="logo-section">
+                    <motion.div
+                      className="logo-icon-wrapper"
+                      whileHover={{ scale: 1.1, rotate: 360 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <FireOutlined className="logo-icon" />
+                    </motion.div>
+                    <div className="logo-text">
+                      <h1 className="logo-title">
+                        {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' : 'DeepSeek AI'}
+                      </h1>
+                      <p className="logo-subtitle">
+                        {selectedMode === 'testcase' ? '专业测试用例生成服务' : '智能对话助手'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="header-actions">
+                    <motion.button
+                      className="icon-button"
+                      onClick={handleBackToModeSelector}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      title="返回模式选择"
+                    >
+                      <HomeOutlined />
+                    </motion.button>
+                    <motion.button
+                      className="icon-button"
+                      onClick={toggleTheme}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {isDark ? <SunOutlined /> : <MoonOutlined />}
+                    </motion.button>
+                    <motion.button
+                      className="icon-button"
+                      onClick={handleClear}
+                      disabled={messages.length === 0}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <ClearOutlined />
+                    </motion.button>
                   </div>
                 </div>
-
-                <div className="header-actions">
-                  <motion.button
-                    className="icon-button"
-                    onClick={handleBackToModeSelector}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    title="返回模式选择"
-                  >
-                    <HomeOutlined />
-                  </motion.button>
-                  <motion.button
-                    className="icon-button"
-                    onClick={toggleTheme}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {isDark ? <SunOutlined /> : <MoonOutlined />}
-                  </motion.button>
-                  <motion.button
-                    className="icon-button"
-                    onClick={handleClear}
-                    disabled={messages.length === 0}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <ClearOutlined />
-                  </motion.button>
-                </div>
-              </div>
-            </motion.header>
+              </motion.header>
+            )}
 
           {/* 主内容区域 */}
           <main className="app-main">
