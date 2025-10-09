@@ -11,107 +11,68 @@ from autogen_ext.models.openai._model_info import ModelInfo
 
 from config import Settings
 from prompts.prompt_loader import load_prompt, PromptNames
+from agents.factory import get_agent_factory, AgentType
+from agents.chat_agent import ChatAgent
+from agents import register_all_agents
 
 
 class AIService:
     """AI 服务类，管理 AutoGen 智能体"""
-    
+
     def __init__(self, settings: Settings):
         """
         初始化 AI 服务
-        
+
         参数:
             settings: 应用配置
         """
         self.settings = settings
-        self.model_client: Optional[OpenAIChatCompletionClient] = None
-        self.agent: Optional[AssistantAgent] = None
-    
+        self.chat_agent: Optional[ChatAgent] = None
+        self.factory = get_agent_factory(settings)
+
     async def initialize(self) -> None:
         """初始化 AI 智能体"""
-        # 验证配置
-        self.settings.validate_config()
-        
+        # 注册所有智能体类型
+        register_all_agents()
+
         # 显示配置信息
         self.settings.display_config()
-        
-        # 创建模型信息（用于非官方模型）
-        model_info = self._create_model_info()
-        
-        # 创建模型客户端
-        self.model_client = OpenAIChatCompletionClient(
-            model=self.settings.model_name,
-            api_key=self.settings.api_key,
-            base_url=self.settings.base_url,
-            model_info=model_info,
-        )
-        
-        # 创建智能体
-        self.agent = AssistantAgent(
+
+        # 使用工厂创建对话智能体
+        self.chat_agent = await self.factory.create_agent(
+            agent_type=AgentType.CHAT,
             name="assistant",
-            model_client=self.model_client,
-            system_message=load_prompt(PromptNames.ASSISTANT),
-            model_client_stream=self.settings.enable_streaming,
+            cache_key="default_chat_agent"
         )
-        
-        print(f"✅ AI 智能体初始化成功！")
-    
+
+        print(f"✅ AI 服务初始化成功！")
+
     async def cleanup(self) -> None:
         """清理资源"""
-        if self.model_client:
-            await self.model_client.close()
+        if self.chat_agent:
+            await self.chat_agent.cleanup()
+            self.factory.remove_cached_agent("default_chat_agent")
             print("🧹 AI 服务资源已清理")
-    
-    def _create_model_info(self) -> ModelInfo:
-        """
-        创建模型信息
 
-        返回:
-            ModelInfo 实例
-        """
-        return ModelInfo(
-            vision=False,
-            function_calling=False,
-            json_output=True,
-            structured_output=False,  # 添加 structured_output 字段
-            family=self._get_model_family(),
-        )
-    
-    def _get_model_family(self) -> str:
-        """
-        获取模型家族名称
-        
-        返回:
-            模型家族名称
-        """
-        model_name_lower = self.settings.model_name.lower()
-        
-        if "deepseek" in model_name_lower:
-            return "deepseek"
-        elif "gpt" in model_name_lower:
-            return "openai"
-        elif "claude" in model_name_lower:
-            return "anthropic"
-        else:
-            return "unknown"
-    
     def get_agent(self) -> Optional[AssistantAgent]:
         """
         获取智能体实例
-        
+
         返回:
             AssistantAgent 实例或 None
         """
-        return self.agent
-    
+        if self.chat_agent:
+            return self.chat_agent.get_agent()
+        return None
+
     def is_initialized(self) -> bool:
         """
         检查智能体是否已初始化
-        
+
         返回:
             True 如果已初始化，否则 False
         """
-        return self.agent is not None
+        return self.chat_agent is not None and self.chat_agent.get_agent() is not None
     
     async def run(self, message: str):
         """
