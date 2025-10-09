@@ -9,20 +9,46 @@ from autogen_agentchat.base import TaskResult
 def build_message_with_file_context(message: str, file_ids: Optional[List[str]] = None) -> str:
     """
     构建包含文件上下文的消息
-    
+
     参数:
         message: 用户消息
         file_ids: 文件 ID 列表（可选）
-    
+
     返回:
         包含文件上下文的消息
     """
-    if not file_ids:
+    if not file_ids or len(file_ids) == 0:
         return message
-    
-    # 如果有文件 ID，添加文件上下文提示
-    file_context = f"\n\n[参考文件: {', '.join(file_ids)}]"
-    return message + file_context
+
+    # 导入文件存储（避免循环导入）
+    from api.routes import get_file_storage
+    file_storage = get_file_storage()
+
+    # 获取文件内容
+    file_contexts = []
+    for file_id in file_ids:
+        if file_id in file_storage:
+            file_data = file_storage[file_id]
+            filename = file_data.get("filename", "unknown")
+            markdown = file_data.get("markdown", "")
+
+            if markdown:
+                file_contexts.append(f"### 文件: {filename}\n\n{markdown}")
+
+    if not file_contexts:
+        return message
+
+    # 构建完整消息
+    context_text = "\n\n---\n\n".join(file_contexts)
+    full_message = f"""请结合以下文件内容和用户问题进行解答：
+
+{context_text}
+
+---
+
+用户问题：{message}"""
+
+    return full_message
 
 
 def extract_final_message(result: TaskResult) -> str:

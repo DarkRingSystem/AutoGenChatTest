@@ -20,6 +20,12 @@ from config import settings
 # 文件内容存储（简单的内存存储，生产环境应使用数据库或缓存）
 file_storage = {}
 
+
+def get_file_storage() -> dict:
+    """获取文件存储实例"""
+    return file_storage
+
+
 # 团队服务缓存（用于保持团队状态）
 _team_service_cache: Dict[str, any] = {}
 
@@ -71,73 +77,6 @@ def _parse_target_agent(message: str) -> Optional[str]:
         return agent_name
 
     return None
-
-
-
-def _build_message_with_file_context(message: str, file_ids: Optional[list[str]]) -> str:
-    """
-    构建包含文件上下文的消息
-
-    参数:
-        message: 用户原始消息
-        file_ids: 文件 ID 列表
-
-    返回:
-        包含文件上下文的完整消息
-    """
-    if not file_ids or len(file_ids) == 0:
-        return message
-
-    # 获取文件存储
-    file_storage = get_file_storage()
-
-    # 获取文件内容
-    file_contexts = []
-    for file_id in file_ids:
-        if file_id in file_storage:
-            file_data = file_storage[file_id]
-            filename = file_data.get("filename", "unknown")
-            markdown = file_data.get("markdown", "")
-
-            if markdown:
-                file_contexts.append(f"### 文件: {filename}\n\n{markdown}")
-
-    if not file_contexts:
-        return message
-
-    # 构建完整消息
-    context_text = "\n\n---\n\n".join(file_contexts)
-    full_message = f"""请结合以下文件内容和用户问题进行解答：
-
-{context_text}
-
----
-
-用户问题：{message}"""
-
-    return full_message
-
-
-def _extract_final_message(result) -> str:
-    """
-    从结果中提取最终消息
-
-    参数:
-        result: 智能体运行结果
-
-    返回:
-        最终消息字符串
-    """
-    if not result.messages:
-        return "未生成响应"
-
-    # 从后往前查找第一个有效消息
-    for msg in reversed(result.messages):
-        if hasattr(msg, 'content') and isinstance(msg.content, str):
-            return msg.content
-
-    return "未生成响应"
-
 
 
 @router.get("/")
