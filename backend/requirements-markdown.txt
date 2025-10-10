@@ -1,0 +1,16 @@
+# Optional dependencies for Markdown conversion features
+# Note: These have dependency conflicts with autogen-core
+# Install separately if you need Markdown conversion functionality
+
+# marker-pdf==1.10.1
+# weasyprint>=66.0
+# mammoth>=1.11.0
+
+# WARNING: marker-pdf requires Pillow<11.0.0, but autogen-core requires Pillow>=11.0.0
+# This creates a dependency conflict that cannot be resolved automatically.
+# 
+# If you need both features, you may need to:
+# 1. Use separate virtual environments
+# 2. Wait for package updates that resolve the conflict
+# 3. Use alternative Markdown conversion tools
+
