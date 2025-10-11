@@ -21,9 +21,12 @@ class ImageAnalysisStreamService:
         """初始化图片分析流式处理服务"""
         self.current_agent = None
         self.agent_responses: Dict[str, str] = {}
+        self.agent_last_sent_length: Dict[str, int] = {}  # 记录每个智能体上次发送的内容长度
+        self.agent_started: Dict[str, bool] = {}  # 记录智能体是否已经开始
         self.message_count = 0
         self.token_counter = get_token_counter()
         self.session_id = ""
+        self.user_message_seen = False  # 是否已经看到用户消息
 
     async def process_stream(
         self,
@@ -81,15 +84,50 @@ class ImageAnalysisStreamService:
         生成:
             SSE 格式的字符串
         """
-        # 提取事件信息
-        source = getattr(event, 'source', 'unknown')
-        content = getattr(event, 'content', '')
-
         # 增加消息计数
         self.message_count += 1
 
+        # 获取事件类型和信息
+        event_type = self._get_event_type(event)
+        source = getattr(event, 'source', 'unknown')
+        content = getattr(event, 'content', '')
+
+        # 根据事件类型处理
+        if event_type == 'TextMessage':
+            async for sse_msg in self._handle_text_message(event, source, content):
+                yield sse_msg
+        elif event_type == 'ModelClientStreamingChunkEvent':
+            async for sse_msg in self._handle_streaming_chunk(event, source, content):
+                yield sse_msg
+        else:
+            # 其他事件类型暂时忽略
+            # print(f"🔍 忽略事件类型: {event_type}, source={source}")
+            pass
+
+    def _get_event_type(self, event: Any) -> str:
+        """获取事件类型"""
+        return getattr(event, 'type', type(event).__name__)
+
+    async def _handle_text_message(
+        self,
+        event: Any,
+        source: str,
+        content: str
+    ) -> AsyncGenerator[str, None]:
+        """处理文本消息事件"""
+        # 过滤用户消息
+        if self._is_user_message(source, content):
+            self.user_message_seen = True
+            # print(f"🚫 过滤用户消息: source={source}")
+            return
+
+        # 过滤非智能体消息
+        if source not in self.AGENT_ROLES:
+            # print(f"🚫 过滤非智能体消息: source={source}")
+            return
+
         # 检测智能体切换
-        if source != self.current_agent and source != 'unknown' and source != 'user':
+        if source != self.current_agent:
             # 如果之前有智能体在工作，发送完成消息
             if self.current_agent:
                 yield self._create_agent_done_message(self.current_agent)
@@ -97,27 +135,89 @@ class ImageAnalysisStreamService:
             # 切换到新智能体
             self.current_agent = source
 
-            # 只在智能体第一次开始时初始化（如果还没有记录）
+            # 初始化智能体响应（如果还没有记录）
             if source not in self.agent_responses:
                 self.agent_responses[source] = ""
+                self.agent_last_sent_length[source] = 0
                 # print(f"🆕 初始化 {source} 的响应缓冲区")
-            # else:
-                # print(f"🔄 切换回 {source}（已有 {len(self.agent_responses[source])} 字符）")
 
-            # 发送智能体开始消息
-            yield self._create_agent_start_message(source)
+            # 发送智能体开始消息（只在第一次出现时发送）
+            if not self.agent_started.get(source, False):
+                yield self._create_agent_start_message(source)
+                self.agent_started[source] = True
+                # print(f"🚀 {source} 开始工作")
 
-        # 发送智能体消息
-        if content and source in self.AGENT_ROLES:
-            # 累积内容（AutoGen 的流式事件是增量的）
-            self.agent_responses[source] += content
-            accumulated_content = self.agent_responses[source]
+        # 处理完整的文本消息（非流式）
+        if content and content != self.agent_responses.get(source, ""):
+            self.agent_responses[source] = content
+            self.agent_last_sent_length[source] = len(content)
+            yield self._create_agent_message(source, content)
+            # print(f"✅ 发送 {source} 的完整消息，长度: {len(content)}")
 
-            # 调试日志
-            # print(f"📤 发送 {source} 的消息: 增量长度={len(content)}, 累积长度={len(accumulated_content)}, 累积内容前20字={accumulated_content[:20]}")
+    async def _handle_streaming_chunk(
+        self,
+        event: Any,
+        source: str,
+        content: str
+    ) -> AsyncGenerator[str, None]:
+        """处理流式块事件"""
+        # 过滤非智能体消息
+        if source not in self.AGENT_ROLES:
+            return
 
-            # 发送累积后的完整内容
-            yield self._create_agent_message(source, accumulated_content)
+        # 检测智能体切换
+        if source != self.current_agent:
+            # 如果之前有智能体在工作，发送完成消息
+            if self.current_agent:
+                yield self._create_agent_done_message(self.current_agent)
+
+            # 切换到新智能体
+            self.current_agent = source
+
+            # 初始化智能体响应（如果还没有记录）
+            if source not in self.agent_responses:
+                self.agent_responses[source] = ""
+                self.agent_last_sent_length[source] = 0
+
+            # 发送智能体开始消息（只在第一次出现时发送）
+            if not self.agent_started.get(source, False):
+                yield self._create_agent_start_message(source)
+                self.agent_started[source] = True
+
+        # 累积流式内容
+        chunk_content = getattr(event, 'content', '')
+        if chunk_content:
+            self.agent_responses[source] += chunk_content
+            current_length = len(self.agent_responses[source])
+
+            # 发送累积的完整内容
+            yield self._create_agent_message(source, self.agent_responses[source])
+            self.agent_last_sent_length[source] = current_length
+
+    def _is_user_message(self, source: str, content: str) -> bool:
+        """
+        判断是否为用户消息
+
+        参数:
+            source: 消息来源
+            content: 消息内容
+
+        返回:
+            True 如果是用户消息，否则 False
+        """
+        # 检查来源
+        if source == 'user':
+            return True
+
+        # 检查是否为第一条消息（通常是用户的图片分析请求）
+        if not self.user_message_seen and self.message_count == 1:
+            return True
+
+        # 检查内容是否包含图片分析请求的特征
+        if "请分析以下 UI 界面图片" in content or "工作流程说明" in content:
+            return True
+
+        return False
 
     def _create_status_message(self, status: str) -> str:
         """创建状态消息"""

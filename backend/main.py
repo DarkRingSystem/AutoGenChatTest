@@ -37,13 +37,38 @@ async def lifespan(app: FastAPI):
 
     负责初始化和清理资源
     """
+    import asyncio
+
     # 启动时初始化服务
     await initialize_services()
 
-    yield
+    try:
+        yield
+    finally:
+        # 关闭时清理资源
+        print("🔄 开始应用关闭流程...")
 
-    # 关闭时清理资源
-    await cleanup_services()
+        try:
+            # 给清理过程更多时间
+            await asyncio.wait_for(cleanup_services(), timeout=10.0)
+        except asyncio.TimeoutError:
+            print("⚠️ 服务清理超时，强制关闭")
+        except Exception as e:
+            print(f"⚠️ 服务清理过程中出错: {e}")
+
+        # 等待所有挂起的任务完成
+        try:
+            # 获取所有未完成的任务
+            pending_tasks = [task for task in asyncio.all_tasks() if not task.done()]
+            if pending_tasks:
+                print(f"⏳ 等待 {len(pending_tasks)} 个挂起任务完成...")
+                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
+        except asyncio.TimeoutError:
+            print("⚠️ 部分任务未能在超时时间内完成")
+        except Exception as e:
+            print(f"⚠️ 等待任务完成时出错: {e}")
+
+        print("✅ 应用关闭流程完成")
 
 
 def create_app() -> FastAPI:

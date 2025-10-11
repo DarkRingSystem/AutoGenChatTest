@@ -93,22 +93,42 @@ class SessionService:
     
     async def cleanup(self) -> None:
         """清理资源"""
+        print("🧹 开始清理会话管理服务资源...")
+
         # 取消清理任务
         if self._cleanup_task:
             self._cleanup_task.cancel()
             try:
-                await self._cleanup_task
-            except asyncio.CancelledError:
+                await asyncio.wait_for(self._cleanup_task, timeout=5.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                print("⚠️ 清理任务已取消或超时")
                 pass
-        
+
         # 清理所有会话
         async with self._lock:
+            # 等待所有会话中的异步任务完成
+            for session_id, session in self.sessions.items():
+                try:
+                    # 如果会话有运行中的任务，给它们一些时间完成
+                    await asyncio.sleep(0.1)
+                    print(f"🧹 清理会话: {session_id}")
+                except Exception as e:
+                    print(f"⚠️ 清理会话 {session_id} 时出错: {e}")
+
             self.sessions.clear()
-        
+
         # 关闭模型客户端
         if self.model_client:
-            await self.model_client.close()
-        
+            try:
+                await asyncio.wait_for(self.model_client.close(), timeout=5.0)
+            except asyncio.TimeoutError:
+                print("⚠️ 模型客户端关闭超时")
+            except Exception as e:
+                print(f"⚠️ 关闭模型客户端时出错: {e}")
+
+        # 等待一小段时间让所有异步任务完成
+        await asyncio.sleep(0.5)
+
         print("🧹 会话管理服务资源已清理")
     
     async def get_or_create_session(self, session_id: Optional[str] = None) -> Session:
