@@ -5,9 +5,9 @@
 from typing import Optional, Literal, List, Dict, Any
 from pydantic import BaseModel, Field
 
-
+# 普通聊天的请求和响应模型
 class ChatRequest(BaseModel):
-    """聊天请求模型"""
+    """普通聊天请求模型"""
     message: str = Field(..., min_length=1, description="用户消息内容")
     conversation_id: Optional[str] = Field(None, description="会话 ID")
     file_ids: Optional[list[str]] = Field(None, description="已解析文件的 ID 列表")
@@ -27,7 +27,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """聊天响应模型"""
+    """普通聊天响应模型"""
     message: str = Field(..., description="AI 回复内容")
     conversation_id: str = Field(..., description="会话 ID")
     status: str = Field(default="success", description="响应状态")
@@ -41,7 +41,7 @@ class ChatResponse(BaseModel):
             }
         }
 
-
+# 健康检查的响应模型
 class HealthResponse(BaseModel):
     """健康检查响应模型"""
     status: Literal["healthy", "unhealthy"] = Field(..., description="服务状态")

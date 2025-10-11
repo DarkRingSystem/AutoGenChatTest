@@ -21,6 +21,7 @@ class TeamStreamService:
         """初始化团队流式处理服务"""
         self.current_agent = None
         self.agent_responses: Dict[str, str] = {}
+        self.agent_started: Dict[str, bool] = {}  # 记录哪些智能体已经发送了 start 消息
         self.message_count = 0
         self.token_counter = get_token_counter()
         self.user_message = ""
@@ -107,6 +108,7 @@ class TeamStreamService:
         """重置内部状态"""
         self.current_agent = None
         self.agent_responses = {}
+        self.agent_started = {}
         self.message_count = 0
 
     def _get_event_type(self, event: Any) -> str:
@@ -199,7 +201,12 @@ class TeamStreamService:
         if not chunk_content:
             return
 
-        # 检测智能体切换
+        # 初始化智能体响应（只在第一次出现时初始化）
+        if source not in self.agent_responses:
+            self.agent_responses[source] = ""
+            self.agent_started[source] = False
+
+        # 检测智能体切换或首次出现
         if source != self.current_agent and source != 'unknown':
             # 如果之前有智能体在工作，发送完成消息
             if self.current_agent:
@@ -207,21 +214,21 @@ class TeamStreamService:
 
             # 切换到新智能体
             self.current_agent = source
-            self.agent_responses[source] = ""
+            # ⚠️ 不要重置 agent_responses[source]，因为可能是并行工作的智能体
 
-            # 发送智能体开始消息
-            yield self._create_agent_start_message(source)
+            # 发送智能体开始消息（只在第一次出现时发送）
+            if not self.agent_started.get(source, False):
+                yield self._create_agent_start_message(source)
+                self.agent_started[source] = True
 
         # 累积智能体响应
-        if source not in self.agent_responses:
-            self.agent_responses[source] = ""
         self.agent_responses[source] += chunk_content
 
-        # 发送流式块
+        # 发送流式块（发送累积的完整内容，而不是单个块）
         if source in self.AGENT_ROLES:
             message = SSEMessage(
                 type="agent_message",
-                content=chunk_content,
+                content=self.agent_responses[source],  # ✅ 发送累积的完整内容
                 agent_name=source,
                 agent_role=self.AGENT_ROLES.get(source, source)
             )

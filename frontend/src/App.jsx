@@ -100,6 +100,11 @@ function App() {
   const [autoScroll, setAutoScroll] = useState(true); // 是否自动滚动
   const [editingMessageId, setEditingMessageId] = useState(null); // 正在编辑的消息 ID
   const [editingContent, setEditingContent] = useState(''); // 编辑中的内容
+
+  // 为每种模式维护独立的会话 ID
+  const [normalConversationId, setNormalConversationId] = useState(null);
+  const [testcaseConversationId, setTestcaseConversationId] = useState(null);
+
   const abortControllerRef = useRef(null); // 用于中止流式传输
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -218,6 +223,12 @@ function App() {
       console.log('🔵 自动检测反馈信息:', { isFeedback, conversationId, targetAgent });
     }
 
+    // 如果不是反馈消息，使用当前模式的会话 ID
+    if (!isFeedback) {
+      conversationId = selectedMode === 'testcase' ? testcaseConversationId : normalConversationId;
+      console.log('🔵 使用当前模式的会话 ID:', conversationId);
+    }
+
     // 如果是反馈消息，清除之前消息的 feedbackRequest 标记
     if (isFeedback) {
       setMessages(prev =>
@@ -258,8 +269,8 @@ function App() {
     try {
       // 根据模式选择不同的 API 端点
       const endpoint = selectedMode === 'testcase'
-        ? `${API_BASE_URL}/api/team-chat/stream`
-        : `${API_BASE_URL}/api/chat/stream`;
+        ? `${API_BASE_URL}/api/chat/testcase/stream`
+        : `${API_BASE_URL}/api/chat/normal/stream`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -283,6 +294,16 @@ function App() {
       // 从响应头中获取 conversation_id
       const responseConversationId = response.headers.get('X-Conversation-ID');
       console.log('📝 Conversation ID:', responseConversationId);
+
+      // 保存会话 ID 到对应模式的状态
+      if (responseConversationId) {
+        if (selectedMode === 'testcase') {
+          setTestcaseConversationId(responseConversationId);
+        } else {
+          setNormalConversationId(responseConversationId);
+        }
+        console.log('💾 已保存会话 ID 到', selectedMode, '模式');
+      }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -350,9 +371,8 @@ function App() {
                     return prev;
                   }
 
-                  const chunkContent = parsed.content || '';
-                  const oldContent = msg.agents[agentIndex].content;
-                  const newContent = oldContent + chunkContent;
+                  // 后端已经发送累积的完整内容，前端直接使用，不再累加
+                  const newContent = parsed.content || '';
 
                   return prev.map(m => {
                     if (m.id === assistantMsgId) {
@@ -435,7 +455,7 @@ function App() {
                   );
                 }
               } else if (parsed.type === 'error') {
-                antMessage.error(parsed.content);
+                message.error(parsed.content);
                 setMessages(prev =>
                   prev.map(msg =>
                     msg.id === assistantMsgId
@@ -464,7 +484,7 @@ function App() {
         );
       } else {
         console.error('流式传输错误:', error);
-        antMessage.error('无法连接到服务器');
+        message.error('无法连接到服务器');
         setMessages(prev =>
           prev.map(msg =>
             msg.id === assistantMsgId
@@ -485,7 +505,7 @@ function App() {
 
     // 检查是否有文件正在解析
     if (isParsing) {
-      antMessage.warning('文件正在解析中，请稍候...');
+      message.warning('文件正在解析中，请稍候...');
       return;
     }
 
@@ -500,13 +520,19 @@ function App() {
   const handleStop = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      antMessage.info('已停止生成');
+      message.info('已停止生成');
     }
   };
 
   const handleClear = () => {
     setMessages([]);
-    antMessage.success('对话已清空');
+    // 清除当前模式的会话 ID
+    if (selectedMode === 'testcase') {
+      setTestcaseConversationId(null);
+    } else {
+      setNormalConversationId(null);
+    }
+    message.success('对话已清空');
   };
 
   const toggleTheme = () => {
@@ -1368,15 +1394,17 @@ function App() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            {/* 文件上传区域 */}
-            <div className="file-upload-wrapper">
-              <FileUpload
-                onFilesChange={handleFilesChange}
-                onParsingStart={handleParsingStart}
-                onParsingComplete={handleParsingComplete}
-                disabled={loading || isStreaming}
-              />
-            </div>
+            {/* 文件上传区域 - 仅在测试用例模式显示 */}
+            {selectedMode === 'testcase' && (
+              <div className="file-upload-wrapper">
+                <FileUpload
+                  onFilesChange={handleFilesChange}
+                  onParsingStart={handleParsingStart}
+                  onParsingComplete={handleParsingComplete}
+                  disabled={loading || isStreaming}
+                />
+              </div>
+            )}
 
             <div className="input-container">
               <Sender

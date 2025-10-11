@@ -2,6 +2,8 @@
 API 路由模块
 定义所有 API 端点
 """
+import base64
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import Optional, Dict
@@ -165,6 +167,12 @@ async def health_check():
 
 @router.post("/api/chat/stream")
 async def chat_stream(request: ChatRequest):
+    """旧的路由，保留向后兼容"""
+    return await chat_normal_stream(request)
+
+
+@router.post("/api/chat/normal/stream")
+async def chat_normal_stream(request: ChatRequest):
     """
     使用 SSE 的流式聊天响应（支持会话隔离）
 
@@ -176,10 +184,6 @@ async def chat_stream(request: ChatRequest):
     """
     if not request.message:
         raise HTTPException(status_code=400, detail="消息不能为空")
-
-    # 构建包含文件上下文的消息
-    from .utils import build_message_with_file_context
-    message_with_context = build_message_with_file_context(request.message, request.file_ids)
 
     # 获取服务实例
     session_service = get_session_service()
@@ -193,10 +197,10 @@ async def chat_stream(request: ChatRequest):
 
     # 从会话的智能体获取事件流
     async def get_event_stream():
-        async for event in session.agent.run_stream(task=message_with_context):
+        async for event in session.agent.run_stream(task=request.message):
             yield event
 
-    # 处理流式响应（使用原始用户消息计算 token）
+    # 处理流式响应
     sse_stream = stream_service.process_stream(get_event_stream(), request.message)
 
     return StreamingResponse(
@@ -206,7 +210,7 @@ async def chat_stream(request: ChatRequest):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # 在 nginx 中禁用缓冲
-            "X-Session-ID": session.session_id,  # 返回会话 ID
+            "X-Conversation-ID": session.session_id,  # 返回会话 ID
         }
     )
 
@@ -315,6 +319,12 @@ async def delete_session(session_id: str):
 
 @router.post("/api/team-chat/stream")
 async def team_chat_stream(request: ChatRequest):
+    """旧的路由，保留向后兼容"""
+    return await chat_testcase_stream(request)
+
+
+@router.post("/api/chat/testcase/stream")
+async def chat_testcase_stream(request: ChatRequest):
     """
     测试用例团队模式的流式聊天响应
 
@@ -468,7 +478,7 @@ async def team_chat_stream(request: ChatRequest):
 
         print(f"🆕 创建新对话 {conversation_id}")
 
-    # 构建包含文件上下文的消息
+    # 构建包含文件上下文的消息（测试用例模式支持文件上传）
     from .utils import build_message_with_file_context
     message_with_context = build_message_with_file_context(feedback_message, request.file_ids)
 

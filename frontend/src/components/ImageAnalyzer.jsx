@@ -30,8 +30,12 @@ const ImageAnalyzer = ({ isDark }) => {
   const [currentAgent, setCurrentAgent] = useState(null);
   const [expandedAgents, setExpandedAgents] = useState(['UI_Expert']); // 默认展开 UI 专家
   const [inputPanelsExpanded, setInputPanelsExpanded] = useState(['image-source']); // 输入面板展开状态（默认只展开图片来源）
+  const [autoScroll, setAutoScroll] = useState(true); // 是否自动滚动
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const lastScrollTopRef = useRef(0); // 记录上次滚动位置
+  const isUserScrollingRef = useRef(false); // 标记用户是否正在滚动
 
   // 缓存并行智能体的结果，用于顺序展示
   const agentBufferRef = useRef({
@@ -57,9 +61,59 @@ const ImageAnalyzer = ({ isDark }) => {
   //   console.log('📊 expandedAgents 状态变化:', expandedAgents);
   // }, [expandedAgents]);
 
-  // 滚动到底部
+  // 消息变化时滚动到底部（仅当自动滚动开启时）
+  useEffect(() => {
+    if (autoScroll && messagesEndRef.current && !isUserScrollingRef.current) {
+      // 使用 setTimeout 确保 DOM 已更新
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [agentMessages, autoScroll]);
+
+  // 监听用户滚动事件
+  const handleScroll = (e) => {
+    const container = e.target;
+    const currentScrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    // 判断是否在底部（允许 50px 的误差）
+    const isAtBottom = scrollHeight - currentScrollTop - clientHeight < 50;
+    const isScrollingUp = currentScrollTop < lastScrollTopRef.current;
+
+    // 标记用户正在滚动
+    isUserScrollingRef.current = true;
+
+    // 如果用户主动向上滚动且不在底部，禁用自动滚动
+    if (isScrollingUp && !isAtBottom) {
+      if (autoScroll) {
+        console.log('用户向上滚动，禁用自动滚动');
+        setAutoScroll(false);
+      }
+    }
+    // 如果用户滚动到底部，重新启用自动滚动
+    else if (isAtBottom) {
+      if (!autoScroll) {
+        console.log('用户滚动到底部，启用自动滚动');
+        setAutoScroll(true);
+      }
+    }
+
+    lastScrollTopRef.current = currentScrollTop;
+
+    // 500ms 后重置用户滚动标记
+    setTimeout(() => {
+      isUserScrollingRef.current = false;
+    }, 500);
+  };
+
+  // 滚动到底部（保留原有函数，供手动调用）
+  // 只有在自动滚动开启时才滚动
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   // 处理图片上传
@@ -189,7 +243,8 @@ const ImageAnalyzer = ({ isDark }) => {
 
             try {
               const event = JSON.parse(data);
-              console.log('📨 SSE Event:', event.type, event.agent_name || '');
+              console.log('📨 SSE Event:', event.type, event.agent_name || '',
+                         event.type === 'agent_message' ? `内容长度: ${event.content?.length}` : '');
               handleSSEEvent(event);
             } catch (e) {
               console.error('❌ 解析 SSE 事件失败:', e);
@@ -604,7 +659,11 @@ const ImageAnalyzer = ({ isDark }) => {
           {/* 分析结果 */}
           {agentMessages.length > 0 && (
             <Card type="inner" title="📊 分析结果" size="small">
-              <div className="agent-messages-container">
+              <div
+                className="agent-messages-container"
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+              >
                 {agentMessages.map((msg, index) => renderAgentMessage(msg, index))}
                 {loading && (
                   <div className="loading-indicator">
