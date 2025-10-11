@@ -294,7 +294,7 @@ const ImageAnalyzer = ({ isDark }) => {
         const agentName = event.agent_name;
         const agentRole = event.agent_role;
 
-        // console.log(`🚀 ${agentName} 开始，可显示: ${canDisplayRef.current[agentName]}`);
+        console.log(`🚀 ${agentName} 开始，可显示: ${canDisplayRef.current[agentName]}`);
 
         // 更新缓冲区
         agentBufferRef.current[agentName] = {
@@ -312,7 +312,7 @@ const ImageAnalyzer = ({ isDark }) => {
 
             if (existingMessage) {
               // 已经存在，不创建新气泡，只重置状态
-              // console.log(`⚠️ ${agentName} 的气泡已存在，不创建新气泡`);
+              console.log(`⚠️ ${agentName} 的气泡已存在，不创建新气泡，只重置状态`);
               return prev.map(msg =>
                 msg.agent_name === agentName
                   ? { ...msg, status: 'processing', content: '' }
@@ -320,7 +320,7 @@ const ImageAnalyzer = ({ isDark }) => {
               );
             } else {
               // 不存在，创建新气泡
-              // console.log(`✅ 创建 ${agentName} 的新气泡`);
+              console.log(`✅ 创建 ${agentName} 的新气泡`);
               return [...prev, {
                 agent_name: agentName,
                 agent_role: agentRole,
@@ -406,8 +406,7 @@ const ImageAnalyzer = ({ isDark }) => {
       case 'agent_done':
         const doneAgentName = event.agent_name;
 
-        // console.log(`🔄 ${doneAgentName} 切换到下一个智能体（保持分析中状态）`);
-        // console.log(`   agentCompletedOnceRef:`, agentCompletedOnceRef.current);
+        console.log(`✅ ${doneAgentName} 完成`);
 
         // 标记完成（仅用于缓冲区）
         if (agentBufferRef.current[doneAgentName]) {
@@ -419,54 +418,24 @@ const ImageAnalyzer = ({ isDark }) => {
 
         // 解锁下一个智能体的显示权限（只在第一次完成时）
         if (doneAgentName === 'UI_Expert' && !agentCompletedOnceRef.current.UI_Expert) {
-          // console.log('✅ UI_Expert 第一次完成，准备展开 Interaction_Analyst');
+          console.log('✅ UI_Expert 第一次完成，解锁 Interaction_Analyst');
           agentCompletedOnceRef.current.UI_Expert = true;
           canDisplayRef.current.Interaction_Analyst = true;
 
           // UI 专家完成后，展开交互分析师
           setExpandedAgents(prev => {
-            // console.log('🎯 UI_Expert 第一次完成，展开 Interaction_Analyst，当前展开列表:', prev);
             if (!prev.includes('Interaction_Analyst')) {
               return [...prev, 'Interaction_Analyst'];
             }
             return prev;
           });
 
-          // 如果 Interaction_Analyst 已经有数据，立即展示
-          const interactionBuffer = agentBufferRef.current.Interaction_Analyst;
-          if (interactionBuffer.started) {
-            setAgentMessages(prev => {
-              // 检查是否已经存在 Interaction_Analyst 的气泡
-              const existingMessage = prev.find(msg => msg.agent_name === 'Interaction_Analyst');
+          // ⚠️ 不要在这里创建 Interaction_Analyst 的消息气泡
+          // 因为 agent_start 事件会创建气泡
+          // 这里只需要解锁显示权限和展开折叠面板即可
 
-              if (existingMessage) {
-                // 已经存在，只更新内容
-                // console.log('Interaction_Analyst 气泡已存在，更新内容');
-                return prev.map(msg =>
-                  msg.agent_name === 'Interaction_Analyst'
-                    ? {
-                        ...msg,
-                        content: interactionBuffer.content,
-                        status: interactionBuffer.completed ? 'done' : 'processing'
-                      }
-                    : msg
-                );
-              } else {
-                // 不存在，创建新气泡
-                // console.log('创建 Interaction_Analyst 的新气泡（从缓冲区）');
-                return [...prev, {
-                  agent_name: 'Interaction_Analyst',
-                  agent_role: interactionBuffer.role,
-                  content: interactionBuffer.content,
-                  status: interactionBuffer.completed ? 'done' : 'processing',
-                  timestamp: new Date().toISOString()
-                }];
-              }
-            });
-            scrollToBottom();
-          }
         } else if (doneAgentName === 'Interaction_Analyst' && !agentCompletedOnceRef.current.Interaction_Analyst) {
-          // console.log('✅ Interaction_Analyst 第一次完成，解锁 Test_Scenario_Expert（不展开）');
+          console.log('✅ Interaction_Analyst 第一次完成，解锁 Test_Scenario_Expert');
           agentCompletedOnceRef.current.Interaction_Analyst = true;
           canDisplayRef.current.Test_Scenario_Expert = true;
 
@@ -474,9 +443,6 @@ const ImageAnalyzer = ({ isDark }) => {
           // 因为 UI_Expert 和 Interaction_Analyst 可能会多次切换
           // Test_Scenario_Expert 会在它自己的 agent_start 事件中展开
         }
-        // else {
-        //   console.log(`⏭️ ${doneAgentName} 已经完成过，跳过展开逻辑`);
-        // }
         break;
 
       case 'error':

@@ -76,6 +76,17 @@ def _parse_target_agent(message: str) -> Optional[str]:
 
 
 
+def get_file_storage() -> Dict:
+    """
+    获取文件存储
+
+    返回:
+        文件存储字典
+    """
+    global file_storage
+    return file_storage
+
+
 def _build_message_with_file_context(message: str, file_ids: Optional[list[str]]) -> str:
     """
     构建包含文件上下文的消息
@@ -91,20 +102,26 @@ def _build_message_with_file_context(message: str, file_ids: Optional[list[str]]
         return message
 
     # 获取文件存储
-    file_storage = get_file_storage()
+    storage = get_file_storage()
 
     # 获取文件内容
     file_contexts = []
     for file_id in file_ids:
-        if file_id in file_storage:
-            file_data = file_storage[file_id]
+        if file_id in storage:
+            file_data = storage[file_id]
             filename = file_data.get("filename", "unknown")
             markdown = file_data.get("markdown", "")
 
             if markdown:
                 file_contexts.append(f"### 文件: {filename}\n\n{markdown}")
+                print(f"📄 添加文件上下文: {filename} (长度: {len(markdown)} 字符)")
+            else:
+                print(f"⚠️ 文件 {filename} 没有 markdown 内容")
+        else:
+            print(f"⚠️ 文件 ID {file_id} 不存在于存储中")
 
     if not file_contexts:
+        print(f"⚠️ 没有找到任何文件上下文，file_ids: {file_ids}")
         return message
 
     # 构建完整消息
@@ -117,6 +134,7 @@ def _build_message_with_file_context(message: str, file_ids: Optional[list[str]]
 
 用户问题：{message}"""
 
+    print(f"✅ 成功构建包含 {len(file_contexts)} 个文件的上下文消息")
     return full_message
 
 
@@ -479,8 +497,8 @@ async def chat_testcase_stream(request: ChatRequest):
         print(f"🆕 创建新对话 {conversation_id}")
 
     # 构建包含文件上下文的消息（测试用例模式支持文件上传）
-    from .utils import build_message_with_file_context
-    message_with_context = build_message_with_file_context(feedback_message, request.file_ids)
+    print(f"📋 构建消息上下文，file_ids: {request.file_ids}")
+    message_with_context = _build_message_with_file_context(feedback_message, request.file_ids)
 
     # 创建团队流服务
     from services.team_stream_service import TeamStreamService
@@ -793,11 +811,14 @@ async def convert_multiple_to_markdown(
                 result["file_id"] = file_id
 
                 # 存储文件内容到内存（包含文件名和 markdown 内容）
+                filename = result.get("filename", "unknown")
+                markdown = result.get("markdown", "")
                 file_storage[file_id] = {
-                    "filename": result.get("filename", "unknown"),
-                    "markdown": result.get("markdown", ""),
+                    "filename": filename,
+                    "markdown": markdown,
                     "metadata": result.get("metadata", {})
                 }
+                print(f"💾 存储文件: {filename} (ID: {file_id}, Markdown长度: {len(markdown)} 字符)")
             else:
                 result["file_id"] = None
 
