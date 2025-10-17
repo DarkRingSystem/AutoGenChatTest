@@ -6,6 +6,7 @@ from typing import Optional, Dict
 import uuid
 import re
 
+router = APIRouter()
 
 @router.post("/api/image-to-description")
 async def image_to_description(
