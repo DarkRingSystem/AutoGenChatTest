@@ -21,9 +21,7 @@ echo Checking virtual environment...
 if not exist .venv (
     echo [ERROR] Virtual environment not found!
     echo Creating virtual environment...
-    cd backend
-    python -m venv venv
-    cd ..
+    python -m venv .venv
     echo [OK] Virtual environment created
 )
 
@@ -43,8 +41,6 @@ if errorlevel 1 (
     echo [OK] All dependencies are installed
 )
 
-cd ..
-
 REM Start backend
 echo.
 echo ================================================================
@@ -52,7 +48,7 @@ echo   Starting Backend Server (Virtual Environment)
 echo ================================================================
 echo.
 
-start "Backend Server" cmd /k "cd backend && venv\Scripts\activate.bat && python main.py"
+start "Backend Server" cmd /k "cd backend && ..\.venv\Scripts\activate.bat && python main.py"
 
 REM Wait for backend to start
 echo Waiting for backend to initialize...
@@ -97,7 +93,7 @@ echo [OK] API Docs:       http://localhost:8000/docs
 echo [OK] ReDoc:          http://localhost:8000/redoc
 echo.
 echo Tips:
-echo    - Backend uses virtual environment: backend\venv
+echo    - Backend uses virtual environment: .venv
 echo    - Backend auto-reloads on code changes
 echo    - Frontend auto-reloads on code changes
 echo    - Close the terminal windows to stop servers
