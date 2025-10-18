@@ -9,29 +9,16 @@ import './ModeSelector.css';
 const ModeSelector = ({ onSelectMode, isDark, onToggleTheme }) => {
   const modes = [
     {
-      id: 'normal',
-      title: '后端普通模式',
-      description: '传统的 AI 助手对话模式，直接与模型进行交互',
-      icon: <NeonRocket />,
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      features: [
-        '💬 直接模型对话',
-        '🧠 快速响应',
-        '📚 基础问答',
-        '✨ 简单交互'
-      ]
-    },
-    {
       id: 'orchestration',
-      title: '后端编排模式',
-      description: '使用 AutoGen 智能体编排系统，提供更智能的对话体验',
+      title: '普通对话模式',
+      description: '基于 AutoGen 智能体编排系统的 AI 助手对话模式',
       icon: <NeonRocket />,
       gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
       features: [
-        '🤖 智能体编排',
-        '🔄 流程管理',
-        '📊 会话跟踪',
-        '⚡ 优化响应'
+        '💬 智能对话',
+        '🧠 快速响应',
+        '📚 知识问答',
+        '✨ 流畅交互'
       ]
     },
     {

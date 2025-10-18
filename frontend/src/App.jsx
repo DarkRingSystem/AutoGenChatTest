@@ -62,27 +62,6 @@ const SUGGESTIONS = [
   },
 ];
 
-// 编排模式建议提示卡片
-const ORCHESTRATION_SUGGESTIONS = [
-  {
-    icon: <RobotOutlined />,
-    text: '解释 AutoGen 智能体编排原理',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    emoji: '🤖'
-  },
-  {
-    icon: <ThunderboltOutlined />,
-    text: '演示智能体协作处理复杂任务',
-    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    emoji: '⚡'
-  },
-  {
-    icon: <CodeOutlined />,
-    text: '生成一个完整的 Python 项目结构',
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    emoji: '💻'
-  },
-];
 
 // 测试用例模式建议提示卡片
 const TESTCASE_SUGGESTIONS = [
@@ -108,8 +87,8 @@ const TESTCASE_SUGGESTIONS = [
 
 function App() {
   // 为每种模式维护独立的消息列表
-  const [normalMessages, setNormalMessages] = useState([]); // 普通对话模式的消息
-  const [orchestrationMessages, setOrchestrationMessages] = useState([]); // 编排模式的消息
+  const [normalMessages, setNormalMessages] = useState([]); // 已废弃的普通模式消息
+  const [orchestrationMessages, setOrchestrationMessages] = useState([]); // 普通对话模式的消息
   const [testcaseMessages, setTestcaseMessages] = useState([]); // 智能体模式的消息
   const [loading, setLoading] = useState(false);
   const [isDark, setIsDark] = useState(true); // 默认深色主题
@@ -369,7 +348,7 @@ function App() {
           file_ids: fileIds.length > 0 ? fileIds : [],
           is_feedback: isFeedback
         };
-        console.log('🚀 编排模式请求体:', JSON.stringify(requestBody, null, 2));
+        console.log('🚀 普通对话模式请求体:', JSON.stringify(requestBody, null, 2));
       }
 
       const response = await fetch(endpoint, {
@@ -388,7 +367,7 @@ function App() {
       // 从响应头中获取 conversation_id（不同模式使用不同的头部名称）
       const responseConversationId = selectedMode === 'testcase'
         ? response.headers.get('X-Conversation-ID')
-        : response.headers.get('x-session-id'); // 普通模式和编排模式都使用 x-session-id
+        : response.headers.get('x-session-id'); // 普通对话模式使用 x-session-id
       console.log('📝 Conversation ID:', responseConversationId);
 
       // 保存会话 ID 到对应模式的状态和ref
@@ -403,11 +382,11 @@ function App() {
         } else if (selectedMode === 'orchestration') {
           setOrchestrationConversationId(responseConversationId);
           orchestrationSessionRef.current = responseConversationId;
-          console.log('💾 编排模式会话ID已保存 (state + ref):', responseConversationId);
+          console.log('💾 普通对话模式会话ID已保存 (state + ref):', responseConversationId);
 
           // 立即验证状态更新
           setTimeout(() => {
-            console.log('🔍 验证编排模式会话ID保存状态:');
+            console.log('🔍 验证普通对话模式会话ID保存状态:');
             console.log('   State:', orchestrationConversationId);
             console.log('   Ref:', orchestrationSessionRef.current);
           }, 100);
@@ -566,9 +545,9 @@ function App() {
                   )
                 );
               } else if (parsed.type === 'status') {
-                // 编排模式的状态更新（如 "thinking"）
+                // 普通对话模式的状态更新（如 "thinking"）
                 if (selectedMode === 'orchestration') {
-                  console.log('🔄 编排模式状态:', parsed.content);
+                  console.log('🔄 普通对话模式状态:', parsed.content);
                   // 可以在这里添加状态显示逻辑
                 }
               } else if (parsed.type === 'message') {
@@ -691,11 +670,9 @@ function App() {
   const handleModeSelect = (mode) => {
     setSelectedMode(mode);
     let modeText = '';
-    if (mode === 'normal') {
-      modeText = '后端普通模式';
-    } else if (mode === 'orchestration') {
-      modeText = '后端编排模式';
-      console.log('🔄 切换到编排模式，当前会话ID:', orchestrationConversationId);
+    if (mode === 'orchestration') {
+      modeText = '普通对话';
+      console.log('🔄 切换到普通对话模式，当前会话ID:', orchestrationConversationId);
     } else if (mode === 'testcase') {
       modeText = '测试用例智能体';
     } else if (mode === 'image-analyzer') {
@@ -1078,11 +1055,11 @@ function App() {
                   <div className="logo-text">
                     <h1 className="logo-title">
                       {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' :
-                       selectedMode === 'orchestration' ? '🤖 AutoGen 编排模式' : 'DeepSeek AI'}
+                       selectedMode === 'orchestration' ? '💬 DeepSeek AI 助手' : 'DeepSeek AI'}
                     </h1>
                     <p className="logo-subtitle">
                       {selectedMode === 'testcase' ? '专业测试用例生成服务' :
-                       selectedMode === 'orchestration' ? '智能体编排对话系统，利用 AutoGen 框架的消息机制实现对话传递' : '智能对话助手'}
+                       selectedMode === 'orchestration' ? '基于 AutoGen 框架的智能对话助手' : '智能对话助手'}
                     </p>
 
                   </div>
@@ -1148,7 +1125,7 @@ function App() {
                       }}
                     >
                       {selectedMode === 'testcase' ? <TeamOutlined /> :
-                       selectedMode === 'orchestration' ? <RobotOutlined /> : <RocketOutlined />}
+                       selectedMode === 'orchestration' ? <RocketOutlined /> : <RocketOutlined />}
                     </motion.div>
 
                     <motion.h2
@@ -1158,7 +1135,7 @@ function App() {
                       transition={{ delay: 0.2 }}
                     >
                       {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' :
-                       selectedMode === 'orchestration' ? '🤖 AutoGen 编排模式' : '你好！我是 DeepSeek AI 助手'}
+                       selectedMode === 'orchestration' ? '你好！我是 DeepSeek AI 助手' : '你好！我是 DeepSeek AI 助手'}
                     </motion.h2>
 
                     <motion.p
@@ -1170,7 +1147,7 @@ function App() {
                       {selectedMode === 'testcase'
                         ? '由 3 个专业智能体协作，为您生成高质量的测试用例'
                         : selectedMode === 'orchestration'
-                        ? '基于 AutoGen 框架的智能体编排系统，提供更智能的对话体验'
+                        ? '我可以帮你解答问题、编写代码、创作内容等等'
                         : '我可以帮你解答问题、编写代码、创作内容等等'
                       }
                     </motion.p>
@@ -1182,7 +1159,7 @@ function App() {
                       transition={{ delay: 0.4 }}
                     >
                       {(selectedMode === 'testcase' ? TESTCASE_SUGGESTIONS :
-                        selectedMode === 'orchestration' ? ORCHESTRATION_SUGGESTIONS : SUGGESTIONS).map((suggestion, index) => (
+                        selectedMode === 'orchestration' ? SUGGESTIONS : SUGGESTIONS).map((suggestion, index) => (
                         <motion.div
                           key={index}
                           className="suggestion-card"
