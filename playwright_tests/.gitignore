@@ -1,0 +1,40 @@
+# Playwright 测试报告和临时文件
+
+# 截图
+reports/screenshots/*.png
+reports/screenshots/*.jpg
+
+# 视频
+reports/videos/*.webm
+reports/videos/*.mp4
+
+# 测试报告
+reports/*.html
+reports/*.xml
+reports/*.json
+
+# Pytest 缓存
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 追踪文件
+trace.zip
+*.trace
+
+# 临时文件
+*.tmp
+*.log
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 保留目录结构
+!reports/screenshots/.gitkeep
+!reports/videos/.gitkeep
+
