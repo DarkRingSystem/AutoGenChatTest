@@ -18,7 +18,7 @@ if not exist backend\.env (
 
 REM Check virtual environment
 echo Checking virtual environment...
-if not exist backend\venv (
+if not exist .venv (
     echo [ERROR] Virtual environment not found!
     echo Creating virtual environment...
     cd backend
@@ -29,8 +29,7 @@ if not exist backend\venv (
 
 REM Activate virtual environment and check dependencies
 echo Activating virtual environment...
-cd backend
-call venv\Scripts\activate.bat
+call .venv\Scripts\activate.bat
 
 echo Checking dependencies...
 python -c "import fastapi" 2>nul

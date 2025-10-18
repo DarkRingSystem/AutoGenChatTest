@@ -13,7 +13,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core import Image
 
 from config import Settings
-from core.llm_clients import get_uitars_model_client, get_default_model_client
+from core.llm_clients import uitars_model_client, get_default_model_client
 from prompts.prompt_loader import load_prompt, PromptNames
 
 
@@ -57,7 +57,7 @@ class ImageAnalyzerTeam:
         print("🚀 正在初始化 UI 图片分析团队...")
 
         # 创建 UI-TARS 模型客户端（用于 UI 和交互分析）
-        self.uitars_model_client = get_uitars_model_client(self.settings)
+        self.uitars_model_client = await uitars_model_client(self.settings)
 
         # 创建默认模型客户端（用于测试场景专家）
         self.default_model_client = get_default_model_client(self.settings)

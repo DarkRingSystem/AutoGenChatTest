@@ -347,21 +347,12 @@ function App() {
         ? `${API_BASE_URL}/api/chat/testcase/stream`
         : selectedMode === 'orchestration'
         ? `${API_BASE_URL}/api/v1/normal_chat/stream_aitest`
-        : `${API_BASE_URL}/api/chat/normal/stream`;
+        : `${API_BASE_URL}/api/v1/normal_chat/stream_aitest`; // 普通模式也使用编排模式端点
 
       // 根据模式构建不同的请求体
       let requestBody;
-      if (selectedMode === 'orchestration') {
-        // 编排模式使用新的 API 格式
-        requestBody = {
-          message: userMessage,
-          session_id: conversationId,
-          file_ids: fileIds.length > 0 ? fileIds : [],
-          is_feedback: isFeedback
-        };
-        console.log('🚀 编排模式请求体:', JSON.stringify(requestBody, null, 2));
-      } else {
-        // 其他模式使用原有格式
+      if (selectedMode === 'testcase') {
+        // 测试模式使用原有格式
         requestBody = {
           message: userMessage,
           file_ids: fileIds.length > 0 ? fileIds : undefined,
@@ -369,7 +360,16 @@ function App() {
           conversation_id: conversationId,
           target_agent: targetAgent
         };
-        console.log('🚀 其他模式请求体:', JSON.stringify(requestBody, null, 2));
+        console.log('🚀 测试模式请求体:', JSON.stringify(requestBody, null, 2));
+      } else {
+        // 普通模式和编排模式都使用新的 API 格式
+        requestBody = {
+          message: userMessage,
+          session_id: conversationId,
+          file_ids: fileIds.length > 0 ? fileIds : [],
+          is_feedback: isFeedback
+        };
+        console.log('🚀 编排模式请求体:', JSON.stringify(requestBody, null, 2));
       }
 
       const response = await fetch(endpoint, {
@@ -386,9 +386,9 @@ function App() {
       }
 
       // 从响应头中获取 conversation_id（不同模式使用不同的头部名称）
-      const responseConversationId = selectedMode === 'orchestration'
-        ? response.headers.get('x-session-id')
-        : response.headers.get('X-Conversation-ID');
+      const responseConversationId = selectedMode === 'testcase'
+        ? response.headers.get('X-Conversation-ID')
+        : response.headers.get('x-session-id'); // 普通模式和编排模式都使用 x-session-id
       console.log('📝 Conversation ID:', responseConversationId);
 
       // 保存会话 ID 到对应模式的状态和ref
@@ -421,9 +421,19 @@ function App() {
             )
           );
         } else {
+          // 普通模式也使用编排模式的逻辑
           setNormalConversationId(responseConversationId);
           normalSessionRef.current = responseConversationId;
           console.log('💾 普通模式会话ID已保存 (state + ref):', responseConversationId);
+
+          // 同时也在助手消息中保存会话ID作为备份
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId
+                ? { ...msg, sessionId: responseConversationId }
+                : msg
+            )
+          );
         }
         console.log('💾 已保存会话 ID 到', selectedMode, '模式:', responseConversationId);
       } else {

@@ -21,6 +21,8 @@ from config import settings
 
 # 导入优化的聊天路由
 from api.v1.endpoints.normal_chat.normal_chat_aitest import router as normal_chat_aitest_router
+# 导入基于消息机制的聊天路由
+from api.v1.endpoints.normal_chat.normal_chat_message_aitest import normal_chat_message_router
 
 # 文件内容存储（简单的内存存储，生产环境应使用数据库或缓存）
 file_storage = {}
@@ -32,6 +34,8 @@ router = APIRouter()
 
 # 包含优化的聊天路由
 router.include_router(normal_chat_aitest_router, tags=["Normal Chat AI Test"])
+# 包含基于消息机制的聊天路由
+router.include_router(normal_chat_message_router, prefix="/api/v1/normal_chat", tags=["Normal Chat Message AI Test"])
 
 
 def _cache_team_service(conversation_id: str, team_service: any) -> None:
