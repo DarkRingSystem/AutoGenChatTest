@@ -62,6 +62,28 @@ const SUGGESTIONS = [
   },
 ];
 
+// 编排模式建议提示卡片
+const ORCHESTRATION_SUGGESTIONS = [
+  {
+    icon: <RobotOutlined />,
+    text: '解释 AutoGen 智能体编排原理',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    emoji: '🤖'
+  },
+  {
+    icon: <ThunderboltOutlined />,
+    text: '演示智能体协作处理复杂任务',
+    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    emoji: '⚡'
+  },
+  {
+    icon: <CodeOutlined />,
+    text: '生成一个完整的 Python 项目结构',
+    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    emoji: '💻'
+  },
+];
+
 // 测试用例模式建议提示卡片
 const TESTCASE_SUGGESTIONS = [
   {
@@ -87,11 +109,12 @@ const TESTCASE_SUGGESTIONS = [
 function App() {
   // 为每种模式维护独立的消息列表
   const [normalMessages, setNormalMessages] = useState([]); // 普通对话模式的消息
+  const [orchestrationMessages, setOrchestrationMessages] = useState([]); // 编排模式的消息
   const [testcaseMessages, setTestcaseMessages] = useState([]); // 智能体模式的消息
   const [loading, setLoading] = useState(false);
   const [isDark, setIsDark] = useState(true); // 默认深色主题
   const [inputValue, setInputValue] = useState('');
-  const [selectedMode, setSelectedMode] = useState(null); // 'normal' 或 'testcase'，null 表示未选择
+  const [selectedMode, setSelectedMode] = useState(null); // 'normal'、'orchestration' 或 'testcase'，null 表示未选择
   const [collapsedAgents, setCollapsedAgents] = useState({}); // 管理智能体折叠状态 {messageId: {agentName: boolean}}
   const [isStreaming, setIsStreaming] = useState(false); // 是否正在流式传输
   const [uploadedFiles, setUploadedFiles] = useState([]); // 上传的文件列表
@@ -103,6 +126,7 @@ function App() {
 
   // 为每种模式维护独立的会话 ID
   const [normalConversationId, setNormalConversationId] = useState(null);
+  const [orchestrationConversationId, setOrchestrationConversationId] = useState(null);
   const [testcaseConversationId, setTestcaseConversationId] = useState(null);
 
   const abortControllerRef = useRef(null); // 用于中止流式传输
@@ -111,9 +135,16 @@ function App() {
   const lastScrollTopRef = useRef(0); // 记录上次滚动位置
   const isUserScrollingRef = useRef(false); // 标记用户是否正在滚动
 
+  // 使用 useRef 存储会话ID，确保立即更新和访问
+  const orchestrationSessionRef = useRef(null);
+  const normalSessionRef = useRef(null);
+  const testcaseSessionRef = useRef(null);
+
   // 根据当前模式获取对应的消息列表
-  const messages = selectedMode === 'testcase' ? testcaseMessages : normalMessages;
-  const setMessages = selectedMode === 'testcase' ? setTestcaseMessages : setNormalMessages;
+  const messages = selectedMode === 'testcase' ? testcaseMessages :
+                   selectedMode === 'orchestration' ? orchestrationMessages : normalMessages;
+  const setMessages = selectedMode === 'testcase' ? setTestcaseMessages :
+                      selectedMode === 'orchestration' ? setOrchestrationMessages : setNormalMessages;
 
   // 消息变化时滚动到底部（仅当自动滚动开启时）
   useEffect(() => {
@@ -123,7 +154,14 @@ function App() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [testcaseMessages, normalMessages, autoScroll]); // 使用实际的状态而不是计算值
+  }, [testcaseMessages, orchestrationMessages, normalMessages, autoScroll]); // 使用实际的状态而不是计算值
+
+  // 监控编排模式会话ID的变化
+  useEffect(() => {
+    if (selectedMode === 'orchestration') {
+      console.log('🔄 编排模式会话ID状态变化:', orchestrationConversationId);
+    }
+  }, [orchestrationConversationId, selectedMode]);
 
   // 监听用户滚动事件
   const handleScroll = (e) => {
@@ -225,8 +263,44 @@ function App() {
 
     // 如果不是反馈消息，使用当前模式的会话 ID
     if (!isFeedback) {
-      conversationId = selectedMode === 'testcase' ? testcaseConversationId : normalConversationId;
+      // 优先使用 ref 中的值，确保获取最新的会话ID
+      if (selectedMode === 'testcase') {
+        conversationId = testcaseSessionRef.current || testcaseConversationId;
+      } else if (selectedMode === 'orchestration') {
+        conversationId = orchestrationSessionRef.current || orchestrationConversationId;
+
+        // 如果仍然没有会话ID，尝试从最近的消息中获取
+        if (!conversationId) {
+          const lastMessage = messages
+            .slice()
+            .reverse()
+            .find(msg => msg.role === 'assistant' && msg.sessionId);
+          if (lastMessage) {
+            conversationId = lastMessage.sessionId;
+            console.log('🔄 从消息历史中获取会话ID:', conversationId);
+          }
+        }
+      } else {
+        conversationId = normalSessionRef.current || normalConversationId;
+      }
+
       console.log('🔵 使用当前模式的会话 ID:', conversationId);
+      console.log('🔍 当前模式:', selectedMode);
+      console.log('🔍 所有会话ID状态 (state):', {
+        normal: normalConversationId,
+        orchestration: orchestrationConversationId,
+        testcase: testcaseConversationId
+      });
+      console.log('🔍 所有会话ID状态 (ref):', {
+        normal: normalSessionRef.current,
+        orchestration: orchestrationSessionRef.current,
+        testcase: testcaseSessionRef.current
+      });
+
+      // 如果仍然没有会话ID，记录警告
+      if (!conversationId && messages.length > 0) {
+        console.warn('⚠️ 警告：应该有会话ID但未找到，这可能导致会话不连续');
+      }
     }
 
     // 如果是反馈消息，清除之前消息的 feedbackRequest 标记
@@ -261,6 +335,7 @@ function App() {
       streaming: true,
       tokens: null, // 将在收到 token 信息后更新
       isTeamMode: selectedMode === 'testcase', // 标记是否为团队模式
+      isOrchestrationMode: selectedMode === 'orchestration', // 标记是否为编排模式
       agents: selectedMode === 'testcase' ? [] : undefined, // 团队模式下的智能体列表
     };
 
@@ -270,20 +345,39 @@ function App() {
       // 根据模式选择不同的 API 端点
       const endpoint = selectedMode === 'testcase'
         ? `${API_BASE_URL}/api/chat/testcase/stream`
+        : selectedMode === 'orchestration'
+        ? `${API_BASE_URL}/api/v1/normal_chat/stream_aitest`
         : `${API_BASE_URL}/api/chat/normal/stream`;
+
+      // 根据模式构建不同的请求体
+      let requestBody;
+      if (selectedMode === 'orchestration') {
+        // 编排模式使用新的 API 格式
+        requestBody = {
+          message: userMessage,
+          session_id: conversationId,
+          file_ids: fileIds.length > 0 ? fileIds : [],
+          is_feedback: isFeedback
+        };
+        console.log('🚀 编排模式请求体:', JSON.stringify(requestBody, null, 2));
+      } else {
+        // 其他模式使用原有格式
+        requestBody = {
+          message: userMessage,
+          file_ids: fileIds.length > 0 ? fileIds : undefined,
+          is_feedback: isFeedback,
+          conversation_id: conversationId,
+          target_agent: targetAgent
+        };
+        console.log('🚀 其他模式请求体:', JSON.stringify(requestBody, null, 2));
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message: userMessage,  // 发送原始用户消息
-          file_ids: fileIds.length > 0 ? fileIds : undefined,  // 发送文件 ID 列表
-          is_feedback: isFeedback,  // 是否为反馈消息
-          conversation_id: conversationId,  // 会话 ID
-          target_agent: targetAgent  // 目标智能体
-        }),
+        body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal, // 添加中止信号
       });
 
@@ -291,18 +385,50 @@ function App() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // 从响应头中获取 conversation_id
-      const responseConversationId = response.headers.get('X-Conversation-ID');
+      // 从响应头中获取 conversation_id（不同模式使用不同的头部名称）
+      const responseConversationId = selectedMode === 'orchestration'
+        ? response.headers.get('x-session-id')
+        : response.headers.get('X-Conversation-ID');
       console.log('📝 Conversation ID:', responseConversationId);
 
-      // 保存会话 ID 到对应模式的状态
+      // 保存会话 ID 到对应模式的状态和ref
       if (responseConversationId) {
+        console.log('📝 准备保存会话ID:', responseConversationId, '到模式:', selectedMode);
+
+        // 同时更新状态和ref，确保立即可用
         if (selectedMode === 'testcase') {
           setTestcaseConversationId(responseConversationId);
+          testcaseSessionRef.current = responseConversationId;
+          console.log('💾 测试模式会话ID已保存 (state + ref):', responseConversationId);
+        } else if (selectedMode === 'orchestration') {
+          setOrchestrationConversationId(responseConversationId);
+          orchestrationSessionRef.current = responseConversationId;
+          console.log('💾 编排模式会话ID已保存 (state + ref):', responseConversationId);
+
+          // 立即验证状态更新
+          setTimeout(() => {
+            console.log('🔍 验证编排模式会话ID保存状态:');
+            console.log('   State:', orchestrationConversationId);
+            console.log('   Ref:', orchestrationSessionRef.current);
+          }, 100);
+
+          // 同时也在助手消息中保存会话ID作为备份
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === assistantMsgId
+                ? { ...msg, sessionId: responseConversationId }
+                : msg
+            )
+          );
         } else {
           setNormalConversationId(responseConversationId);
+          normalSessionRef.current = responseConversationId;
+          console.log('💾 普通模式会话ID已保存 (state + ref):', responseConversationId);
         }
-        console.log('💾 已保存会话 ID 到', selectedMode, '模式');
+        console.log('💾 已保存会话 ID 到', selectedMode, '模式:', responseConversationId);
+      } else {
+        console.warn('⚠️ 未收到会话ID响应头');
+        console.warn('⚠️ 响应头列表:', Object.fromEntries(response.headers.entries()));
       }
 
       const reader = response.body.getReader();
@@ -429,6 +555,12 @@ function App() {
                       : msg
                   )
                 );
+              } else if (parsed.type === 'status') {
+                // 编排模式的状态更新（如 "thinking"）
+                if (selectedMode === 'orchestration') {
+                  console.log('🔄 编排模式状态:', parsed.content);
+                  // 可以在这里添加状态显示逻辑
+                }
               } else if (parsed.type === 'message') {
                 setMessages(prev =>
                   prev.map(msg =>
@@ -437,18 +569,19 @@ function App() {
                       : msg
                   )
                 );
-              } else if (parsed.type === 'tokens') {
-                // 处理 token 统计信息
-                if (parsed.tokens) {
+              } else if (parsed.type === 'tokens' || parsed.type === 'token_usage') {
+                // 处理 token 统计信息（支持两种格式）
+                const tokenData = parsed.tokens || parsed;
+                if (tokenData) {
                   setMessages(prev =>
                     prev.map(msg => {
                       // 更新用户消息的 token（只显示输入 token）
                       if (msg.role === 'user' && msg.content === userMessage) {
-                        return { ...msg, tokens: { input: parsed.tokens.input } };
+                        return { ...msg, tokens: { input: tokenData.input || tokenData.prompt_tokens } };
                       }
                       // 更新助手消息的 token（显示输出 token）
                       if (msg.id === assistantMsgId) {
-                        return { ...msg, tokens: { output: parsed.tokens.output } };
+                        return { ...msg, tokens: { output: tokenData.output || tokenData.completion_tokens } };
                       }
                       return msg;
                     })
@@ -526,12 +659,18 @@ function App() {
 
   const handleClear = () => {
     setMessages([]);
-    // 清除当前模式的会话 ID
+    // 清除当前模式的会话 ID (同时清除state和ref)
     if (selectedMode === 'testcase') {
       setTestcaseConversationId(null);
+      testcaseSessionRef.current = null;
+    } else if (selectedMode === 'orchestration') {
+      setOrchestrationConversationId(null);
+      orchestrationSessionRef.current = null;
     } else {
       setNormalConversationId(null);
+      normalSessionRef.current = null;
     }
+    console.log('🧹 已清除', selectedMode, '模式的对话和会话ID');
     message.success('对话已清空');
   };
 
@@ -543,7 +682,10 @@ function App() {
     setSelectedMode(mode);
     let modeText = '';
     if (mode === 'normal') {
-      modeText = '普通对话';
+      modeText = '后端普通模式';
+    } else if (mode === 'orchestration') {
+      modeText = '后端编排模式';
+      console.log('🔄 切换到编排模式，当前会话ID:', orchestrationConversationId);
     } else if (mode === 'testcase') {
       modeText = '测试用例智能体';
     } else if (mode === 'image-analyzer') {
@@ -925,11 +1067,14 @@ function App() {
                   </motion.div>
                   <div className="logo-text">
                     <h1 className="logo-title">
-                      {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' : 'DeepSeek AI'}
+                      {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' :
+                       selectedMode === 'orchestration' ? '🤖 AutoGen 编排模式' : 'DeepSeek AI'}
                     </h1>
                     <p className="logo-subtitle">
-                      {selectedMode === 'testcase' ? '专业测试用例生成服务' : '智能对话助手'}
+                      {selectedMode === 'testcase' ? '专业测试用例生成服务' :
+                       selectedMode === 'orchestration' ? '智能体编排对话系统，利用 AutoGen 框架的消息机制实现对话传递' : '智能对话助手'}
                     </p>
+
                   </div>
                 </div>
 
@@ -992,7 +1137,8 @@ function App() {
                         ease: 'easeInOut'
                       }}
                     >
-                      {selectedMode === 'testcase' ? <TeamOutlined /> : <RocketOutlined />}
+                      {selectedMode === 'testcase' ? <TeamOutlined /> :
+                       selectedMode === 'orchestration' ? <RobotOutlined /> : <RocketOutlined />}
                     </motion.div>
 
                     <motion.h2
@@ -1001,7 +1147,8 @@ function App() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' : '你好！我是 DeepSeek AI 助手'}
+                      {selectedMode === 'testcase' ? '🧪 测试用例智能体团队' :
+                       selectedMode === 'orchestration' ? '🤖 AutoGen 编排模式' : '你好！我是 DeepSeek AI 助手'}
                     </motion.h2>
 
                     <motion.p
@@ -1012,6 +1159,8 @@ function App() {
                     >
                       {selectedMode === 'testcase'
                         ? '由 3 个专业智能体协作，为您生成高质量的测试用例'
+                        : selectedMode === 'orchestration'
+                        ? '基于 AutoGen 框架的智能体编排系统，提供更智能的对话体验'
                         : '我可以帮你解答问题、编写代码、创作内容等等'
                       }
                     </motion.p>
@@ -1022,7 +1171,8 @@ function App() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
                     >
-                      {(selectedMode === 'testcase' ? TESTCASE_SUGGESTIONS : SUGGESTIONS).map((suggestion, index) => (
+                      {(selectedMode === 'testcase' ? TESTCASE_SUGGESTIONS :
+                        selectedMode === 'orchestration' ? ORCHESTRATION_SUGGESTIONS : SUGGESTIONS).map((suggestion, index) => (
                         <motion.div
                           key={index}
                           className="suggestion-card"

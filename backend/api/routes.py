@@ -19,6 +19,9 @@ from models import (
 from core.dependencies import get_ai_service, get_stream_service, get_session_service
 from config import settings
 
+# 导入优化的聊天路由
+from api.v1.endpoints.normal_chat.normal_chat_aitest import router as normal_chat_aitest_router
+
 # 文件内容存储（简单的内存存储，生产环境应使用数据库或缓存）
 file_storage = {}
 
@@ -26,6 +29,9 @@ file_storage = {}
 _team_service_cache: Dict[str, any] = {}
 
 router = APIRouter()
+
+# 包含优化的聊天路由
+router.include_router(normal_chat_aitest_router, tags=["Normal Chat AI Test"])
 
 
 def _cache_team_service(conversation_id: str, team_service: any) -> None:

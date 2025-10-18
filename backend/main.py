@@ -92,7 +92,7 @@ def create_app() -> FastAPI:
         allow_credentials=settings.cors_credentials,
         allow_methods=settings.cors_methods,
         allow_headers=settings.cors_headers,
-        expose_headers=["X-Conversation-ID", "X-Team-Mode"],  # 允许前端读取自定义响应头
+        expose_headers=["X-Conversation-ID", "X-Team-Mode", "x-session-id"],  # 允许前端读取自定义响应头
     )
 
     # 注册路由

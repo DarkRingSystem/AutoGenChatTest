@@ -9,12 +9,56 @@ from autogen_core.models import ModelInfo
 from config import Settings
 
 # 全局模型客户端缓存
+_deepseek_model_client: Optional[OpenAIChatCompletionClient] = None
 _uitars_model_client: Optional[OpenAIChatCompletionClient] = None
-_vision_model_client: Optional[OpenAIChatCompletionClient] = None
+_qwen_vl_least_client: Optional[OpenAIChatCompletionClient] = None
+
+
+# default为deepseek-chat
 _default_model_client: Optional[OpenAIChatCompletionClient] = None
 
 
-def get_uitars_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
+async def deepseek_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
+    """
+    获取 DeepSeek 模型客户端，用于通用对话和文本处理
+
+    参数:
+        settings: 配置实例，如果为 None 则使用全局配置
+
+    返回:
+        OpenAIChatCompletionClient 实例
+    """
+    global _deepseek_model_client
+    if _deepseek_model_client is None:
+        if settings is None:
+            from config import settings as global_settings
+            settings = global_settings
+
+        # 从配置中获取 DeepSeek 模型信息
+        deepseek_model = getattr(settings, 'deepseek_model', 'deepseek-chat')
+        deepseek_api_key = getattr(settings, 'deepseek_api_key', settings.api_key)
+        deepseek_base_url = getattr(settings, 'deepseek_base_url', settings.base_url)
+
+
+        _deepseek_model_client = OpenAIChatCompletionClient(
+            model=settings.model_name,
+            api_key=settings.api_key,
+            base_url=settings.base_url, 
+            model_info={
+                "vision": False,
+                "function_calling": True,
+                "json_output": True,
+                "structured_output": True,
+                "family": "deepseek",
+                "multiple_system_messages": True,
+            },
+        )
+        print(f"✅ DeepSeek 模型客户端已创建成功")
+
+    return _deepseek_model_client
+
+
+async def uitars_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
     """
     获取 UI-TARS 模型客户端，用于 UI 自动化和图像分析
 
@@ -60,9 +104,9 @@ def get_uitars_model_client(settings: Optional[Settings] = None) -> OpenAIChatCo
     return _uitars_model_client
 
 
-def get_vision_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
+async def qwen_vl_least_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
     """
-    获取视觉模型客户端，用于图像理解和分析
+    获取千问视觉模型，用于图像理解和分析
 
     参数:
         settings: 配置实例，如果为 None 则使用全局配置
@@ -70,37 +114,37 @@ def get_vision_model_client(settings: Optional[Settings] = None) -> OpenAIChatCo
     返回:
         OpenAIChatCompletionClient 实例
     """
-    global _vision_model_client
+    global _qwen_vl_least_client
 
-    if _vision_model_client is None:
+    if _qwen_vl_least_client is None:
         if settings is None:
             from config import settings as global_settings
             settings = global_settings
 
         # 从配置中获取视觉模型信息
-        vision_model = getattr(settings, 'vision_model', settings.model_name)
-        vision_api_key = getattr(settings, 'vision_api_key', settings.api_key)
-        vision_base_url = getattr(settings, 'vision_base_url', settings.base_url)
+        qwen_vl_least_model = getattr(settings, 'qwen_vl_least_model', settings.model_name)
+        qwen_vl_least_api_key = getattr(settings, 'qwen_vl_least_api_key', settings.api_key)
+        qwen_vl_least_base_url = getattr(settings, 'qwen_vl_least_base_url', settings.base_url)
 
-        _vision_model_client = OpenAIChatCompletionClient(
-            model=vision_model,
-            api_key=vision_api_key,
-            base_url=vision_base_url,
+        _qwen_vl_least_client = OpenAIChatCompletionClient(
+            model=qwen_vl_least_model,
+            api_key=qwen_vl_least_api_key,
+            base_url=qwen_vl_least_base_url,
             model_info={
                 "vision": True,
                 "function_calling": True,
                 "json_output": True,
                 "structured_output": False,
-                "family": _get_model_family(vision_model),
+                "family": await _get_model_family(qwen_vl_least_model),
                 "multiple_system_messages": True,
             },
         )
-        print(f"✅ 视觉模型客户端已创建: {vision_model}")
+        print(f"✅ 千问视觉模型客户端已创建: {qwen_vl_least_model}")
 
-    return _vision_model_client
+    return _qwen_vl_least_client
 
 
-def get_default_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
+async def default_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
     """
     获取默认模型客户端，用于通用对话和文本处理
 
@@ -126,7 +170,7 @@ def get_default_model_client(settings: Optional[Settings] = None) -> OpenAIChatC
                 "function_calling": True,
                 "json_output": True,
                 "structured_output": False,
-                "family": _get_model_family(settings.model_name),
+                "family": await _get_model_family(settings.model_name),
                 "multiple_system_messages": True,
             },
         )
@@ -135,7 +179,36 @@ def get_default_model_client(settings: Optional[Settings] = None) -> OpenAIChatC
     return _default_model_client
 
 
-def _get_model_family(model_name: Optional[str]) -> str:
+def get_default_model_client(settings: Optional[Settings] = None) -> OpenAIChatCompletionClient:
+    """
+    同步获取默认模型客户端（用于兼容性）
+
+    参数:
+        settings: 配置实例，如果为 None 则使用全局配置
+
+    返回:
+        OpenAIChatCompletionClient 实例
+    """
+    if settings is None:
+        from config import settings as global_settings
+        settings = global_settings
+
+    return OpenAIChatCompletionClient(
+        model=settings.model_name,
+        api_key=settings.api_key,
+        base_url=settings.base_url,
+        model_info={
+            "vision": False,
+            "function_calling": True,
+            "json_output": True,
+            "structured_output": False,
+            "family": "deepseek",  # 简化处理
+            "multiple_system_messages": True,
+        },
+    )
+
+
+async def _get_model_family(model_name: Optional[str]) -> str:
     """
     根据模型名称推断模型家族
 
@@ -166,16 +239,17 @@ def _get_model_family(model_name: Optional[str]) -> str:
         return "unknown"
 
 
-def reset_model_clients() -> None:
+async def reset_model_clients() -> None:
     """
     重置所有模型客户端缓存
     用于配置更新后重新初始化客户端
     """
-    global _uitars_model_client, _vision_model_client, _default_model_client
+    global _uitars_model_client, _qwen_vl_least_client, _default_model_client, _deepseek_model_client
 
     _uitars_model_client = None
-    _vision_model_client = None
+    _qwen_vl_least_client = None
     _default_model_client = None
+    _deepseek_model_client = None
 
     print("🔄 所有模型客户端缓存已重置")
 
