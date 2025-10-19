@@ -29,19 +29,16 @@ fi
 
 # 检查虚拟环境
 echo "🔍 Checking virtual environment..."
-if [ ! -d "backend/venv" ]; then
+if [ ! -d ".venv" ]; then
     echo -e "${RED}❌ Virtual environment not found!${NC}"
     echo "📦 Creating virtual environment..."
-    cd backend
-    python3 -m venv venv
-    cd ..
+    python3 -m venv .venv
     echo -e "${GREEN}✅ Virtual environment created${NC}"
 fi
 
 # 激活虚拟环境并检查依赖
 echo "🔧 Activating virtual environment..."
-cd backend
-source venv/bin/activate
+source .venv/bin/activate
 
 # 检查关键依赖
 echo "📦 Checking dependencies..."
@@ -53,14 +50,12 @@ python -c "import autogen_agentchat" 2>/dev/null || MISSING_DEPS=1
 if [ $MISSING_DEPS -eq 1 ]; then
     echo -e "${YELLOW}⚠️  Some dependencies are missing${NC}"
     echo "📦 Installing dependencies..."
-    pip install -r requirements.txt
+    pip install -r backend/requirements.txt
     pip install "pillow>=11.0.0" --upgrade
     echo -e "${GREEN}✅ Dependencies installed${NC}"
 else
     echo -e "${GREEN}✅ All dependencies are installed${NC}"
 fi
-
-cd ..
 
 # 启动后端
 echo ""
@@ -69,8 +64,8 @@ echo "  🔧 Starting Backend Server (Virtual Environment)"
 echo "════════════════════════════════════════════════════════════════"
 echo ""
 
+source .venv/bin/activate
 cd backend
-source venv/bin/activate
 python main.py &
 BACKEND_PID=$!
 cd ..
@@ -126,7 +121,7 @@ echo -e "${GREEN}📚 API Docs:${NC}       http://localhost:8000/docs"
 echo -e "${GREEN}📖 ReDoc:${NC}          http://localhost:8000/redoc"
 echo ""
 echo -e "${BLUE}💡 Tips:${NC}"
-echo "   - Backend uses virtual environment: backend/venv"
+echo "   - Backend uses virtual environment: .venv"
 echo "   - Backend auto-reloads on code changes"
 echo "   - Frontend auto-reloads on code changes"
 echo ""

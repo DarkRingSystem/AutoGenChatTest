@@ -34,7 +34,7 @@ python -c "import fastapi" 2>nul
 if errorlevel 1 (
     echo [WARNING] Some dependencies are missing
     echo Installing dependencies...
-    pip install -r requirements.txt
+    pip install -r backend\requirements.txt
     pip install "pillow>=11.0.0" --upgrade
     echo [OK] Dependencies installed
 ) else (
