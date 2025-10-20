@@ -53,20 +53,40 @@ async def lifespan(app: FastAPI):
             await asyncio.wait_for(cleanup_services(), timeout=10.0)
         except asyncio.TimeoutError:
             print("⚠️ 服务清理超时，强制关闭")
+        except asyncio.CancelledError:
+            print("⚠️ 服务清理被取消")
         except Exception as e:
             print(f"⚠️ 服务清理过程中出错: {e}")
 
-        # 等待所有挂起的任务完成
+        # 等待所有挂起的任务完成（排除当前任务和系统任务）
         try:
-            # 获取所有未完成的任务
-            pending_tasks = [task for task in asyncio.all_tasks() if not task.done()]
+            current_task = asyncio.current_task()
+            pending_tasks = [
+                task for task in asyncio.all_tasks()
+                if not task.done() and task is not current_task
+            ]
             if pending_tasks:
                 print(f"⏳ 等待 {len(pending_tasks)} 个挂起任务完成...")
-                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=5.0)
+                # 使用 wait 而不是 gather，这样可以更好地处理取消
+                done, pending = await asyncio.wait(
+                    pending_tasks,
+                    timeout=2.0,  # 减少超时时间
+                    return_when=asyncio.ALL_COMPLETED
+                )
+                if pending:
+                    # 不打印警告，直接取消剩余任务
+                    for task in pending:
+                        task.cancel()
+                    # 给一点时间让任务响应取消
+                    await asyncio.sleep(0.1)
         except asyncio.TimeoutError:
-            print("⚠️ 部分任务未能在超时时间内完成")
+            pass  # 超时是正常的，不需要警告
+        except asyncio.CancelledError:
+            pass  # 取消是正常的，不需要警告
         except Exception as e:
-            print(f"⚠️ 等待任务完成时出错: {e}")
+            # 只在真正的错误时打印
+            if not isinstance(e, (asyncio.TimeoutError, asyncio.CancelledError)):
+                print(f"⚠️ 等待任务完成时出错: {e}")
 
         print("✅ 应用关闭流程完成")
 

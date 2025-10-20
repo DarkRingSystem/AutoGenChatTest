@@ -60,10 +60,10 @@ class Settings(BaseSettings):
     markdown_max_concurrent: int = 3
 
     # Markdown LLM 配置（可选，用于提升转换精度）
-    markdown_llm_service: Optional[str] = None
-    markdown_llm_api_key: Optional[str] = None
-    markdown_llm_base_url: Optional[str] = None
-    markdown_llm_model: Optional[str] = None
+    markdown_llm_service: Optional[str] = "UI-TARS"
+    markdown_llm_api_key: Optional[str] = "0e58effd-fe97-4809-91ee-a631585d0ac2"
+    markdown_llm_base_url: Optional[str] = "https://ark.cn-beijing.volces.com/api/v3"
+    markdown_llm_model: Optional[str] = "doubao-1-5-ui-tars-250428"
 
     class Config:
         env_file = ".env"
@@ -93,11 +93,17 @@ class Settings(BaseSettings):
     def display_config(self) -> None:
         """显示配置信息"""
         print(f"🚀 正在初始化 AI 模型...")
+        print(f"   语言模型信息:")
         print(f"   模型: {self.model_name}")
         print(f"   API: {self.base_url}")
-        print(f"   服务器: {self.host}:{self.port}")
+        print(f"   API Key: {self.api_key[:20]}...{self.api_key[-10:] if self.api_key and len(self.api_key) > 30 else self.api_key}")
+        print(f"\n   多模态模型信息:")
+        print(f"   模型: {self.uitars_model}")
+        print(f"   API: {self.uitars_base_url}")
+        print(f"   API Key: {self.uitars_api_key[:20]}...{self.uitars_api_key[-10:] if self.uitars_api_key and len(self.uitars_api_key) > 30 else self.uitars_api_key}")
         print(f"\n📄 Markdown 转换配置:")
         print(f"   使用 LLM: {self.markdown_use_llm}")
+        print(f"   LLM 服务: {self.markdown_llm_model}")
         print(f"   强制 OCR: {self.markdown_force_ocr}")
         print(f"   禁用图片提取: {self.markdown_disable_image_extraction}")
         print(f"   输出格式: {self.markdown_output_format}")
